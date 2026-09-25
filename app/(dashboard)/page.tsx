@@ -66,7 +66,7 @@ export default function DashboardHomePage() {
                   <CartesianGrid stroke="#eee7ff" strokeDasharray="4 4" vertical={false} />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
                   <Line type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={3} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -77,7 +77,7 @@ export default function DashboardHomePage() {
                   <CartesianGrid stroke="#eee7ff" strokeDasharray="4 4" vertical={false} />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
                   <Bar dataKey="value" fill="#ff8f3d" radius={[12, 12, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>

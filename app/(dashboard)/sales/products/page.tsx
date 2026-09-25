@@ -2,11 +2,12 @@
 import { ResourcePage } from "@/components/resource-page";
 import { StatusBadge } from "@/components/status-badge";
 import { useProducts } from "@/lib/hooks/products";
+import { mockProducts } from "@/lib/mocks";
 import { formatCurrency } from "@/lib/utils";
 import type { Product } from "@/types";
 
 export default function ProductsPage() {
-  const { data } = useProducts();
+  const { data = mockProducts } = useProducts();
   return (
     <ResourcePage<Product>
       title="Products"

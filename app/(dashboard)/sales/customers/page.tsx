@@ -2,11 +2,12 @@
 import { ResourcePage } from "@/components/resource-page";
 import { StatusBadge } from "@/components/status-badge";
 import { useCustomers } from "@/lib/hooks/customers";
+import { mockCustomers } from "@/lib/mocks";
 import { formatCurrency } from "@/lib/utils";
 import type { Customer } from "@/types";
 
 export default function CustomersPage() {
-  const { data } = useCustomers();
+  const { data = mockCustomers } = useCustomers();
   return (
     <ResourcePage<Customer>
       title="Customers"

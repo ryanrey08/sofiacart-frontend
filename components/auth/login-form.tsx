@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Loader2, LogIn } from "lucide-react";
@@ -25,9 +25,8 @@ const demoAuth: AuthResponse = {
   },
 };
 
-export function LoginForm() {
+export function LoginForm({ registrationSuccess = false }: { registrationSuccess?: boolean }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -73,7 +72,7 @@ export function LoginForm() {
           </div>
         </CardHeader>
         <CardContent>
-          {searchParams.get("registered") ? (
+          {registrationSuccess ? (
             <div className="mb-4 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">
               Merchant registration submitted successfully. Sign in to continue.
             </div>

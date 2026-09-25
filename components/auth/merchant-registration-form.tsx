@@ -15,8 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StepperNav, type StepItem } from "@/components/stepper-nav";
 import api from "@/lib/api/axios";
 import { slugify } from "@/lib/utils";
-import { merchantRegistrationSchema } from "@/lib/validation/merchant";
-import type { MerchantRegistrationFormValues } from "@/types";
+import { merchantRegistrationSchema, type MerchantRegistrationSchema } from "@/lib/validation/merchant";
 
 const steps: StepItem[] = [
   { id: 1, title: "Business Details", description: "Verify legal business information" },
@@ -25,14 +24,14 @@ const steps: StepItem[] = [
   { id: 4, title: "Review & Submit", description: "Double-check your application details" },
 ];
 
-const fieldGroups: Record<number, (keyof MerchantRegistrationFormValues)[]> = {
+const fieldGroups: Record<number, (keyof MerchantRegistrationSchema)[]> = {
   1: ["businessName", "businessType", "permitNumber", "tin", "businessCategory", "businessPermit", "businessAddress", "city", "province", "zipCode"],
   2: ["storeName", "storeSlug", "storeCategory", "storeDescription", "storeContactNumber", "storeEmail", "storeAddress", "storeLogo", "storeBanner", "facebook", "instagram", "tiktok", "website"],
   3: ["ownerFullName", "ownerPosition", "ownerEmail", "ownerContactNumber", "dateOfBirth", "governmentIdType", "governmentIdNumber", "governmentIdExpiry", "governmentIdFile"],
   4: [],
 };
 
-const defaultValues: MerchantRegistrationFormValues = {
+const defaultValues: MerchantRegistrationSchema = {
   businessName: "",
   businessType: "",
   permitNumber: "",
@@ -112,7 +111,7 @@ export function MerchantRegistrationForm() {
     trigger,
     getValues,
     formState: { errors, isSubmitting },
-  } = useForm<MerchantRegistrationFormValues>({
+  } = useForm<MerchantRegistrationSchema>({
     resolver: zodResolver(merchantRegistrationSchema),
     defaultValues,
     mode: "onTouched",
@@ -154,7 +153,7 @@ export function MerchantRegistrationForm() {
 
   const previousStep = () => setCurrentStep((step) => Math.max(1, step - 1));
 
-  const submitApplication = async (values: MerchantRegistrationFormValues) => {
+  const submitApplication = async (values: MerchantRegistrationSchema) => {
     setSubmitError(null);
 
     const formData = new FormData();
@@ -181,7 +180,7 @@ export function MerchantRegistrationForm() {
     }
   };
 
-  const renderInput = (name: keyof MerchantRegistrationFormValues, label: string, props?: Partial<ComponentProps<typeof Input>>) => (
+  const renderInput = (name: keyof MerchantRegistrationSchema, label: string, props?: Partial<ComponentProps<typeof Input>>) => (
     <div>
       <Label htmlFor={name}>{label}</Label>
       <Input id={name} hasError={!!errors[name]} {...register(name)} {...props} />

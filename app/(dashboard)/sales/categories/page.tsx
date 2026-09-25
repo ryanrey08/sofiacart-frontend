@@ -2,10 +2,11 @@
 import { ResourcePage } from "@/components/resource-page";
 import { StatusBadge } from "@/components/status-badge";
 import { useCategories } from "@/lib/hooks/categories";
+import { mockCategories } from "@/lib/mocks";
 import type { Category } from "@/types";
 
 export default function CategoriesPage() {
-  const { data } = useCategories();
+  const { data = mockCategories } = useCategories();
   return (
     <ResourcePage<Category>
       title="Categories"

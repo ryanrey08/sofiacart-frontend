@@ -2,11 +2,12 @@
 import { ResourcePage } from "@/components/resource-page";
 import { StatusBadge } from "@/components/status-badge";
 import { useTransactions } from "@/lib/hooks/transactions";
+import { mockTransactions } from "@/lib/mocks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Transaction } from "@/types";
 
 export default function TransactionsPage() {
-  const { data } = useTransactions();
+  const { data = mockTransactions } = useTransactions();
   return (
     <ResourcePage<Transaction>
       title="Transactions"

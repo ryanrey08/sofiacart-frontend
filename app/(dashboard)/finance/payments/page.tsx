@@ -2,11 +2,12 @@
 import { ResourcePage } from "@/components/resource-page";
 import { StatusBadge } from "@/components/status-badge";
 import { usePayments } from "@/lib/hooks/payments";
+import { mockPayments } from "@/lib/mocks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Payment } from "@/types";
 
 export default function PaymentsPage() {
-  const { data } = usePayments();
+  const { data = mockPayments } = usePayments();
   return (
     <ResourcePage<Payment>
       title="Payments"

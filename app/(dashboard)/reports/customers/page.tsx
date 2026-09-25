@@ -2,6 +2,7 @@
 import { ReportPage } from "@/components/report-page";
 import { StatusBadge } from "@/components/status-badge";
 import { useCustomerReport } from "@/lib/hooks/reports";
+import { mockReports } from "@/lib/mocks";
 
 export default function CustomerReportPage() {
   const { data } = useCustomerReport();
@@ -9,7 +10,7 @@ export default function CustomerReportPage() {
     <ReportPage
       title="Customer Reports"
       description="Understand growth, repeat purchase behaviour, and customer value."
-      report={data}
+      report={data ?? mockReports.customers}
       columns={[
         { key: "customer", header: "Customer" },
         { key: "orders", header: "Orders" },

@@ -2,11 +2,12 @@
 import { ResourcePage } from "@/components/resource-page";
 import { StatusBadge } from "@/components/status-badge";
 import { useRefunds } from "@/lib/hooks/refunds";
+import { mockRefunds } from "@/lib/mocks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Refund } from "@/types";
 
 export default function RefundsPage() {
-  const { data } = useRefunds();
+  const { data = mockRefunds } = useRefunds();
   return (
     <ResourcePage<Refund>
       title="Refunds"

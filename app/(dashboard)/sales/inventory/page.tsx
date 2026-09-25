@@ -2,11 +2,12 @@
 import { ResourcePage } from "@/components/resource-page";
 import { StatusBadge } from "@/components/status-badge";
 import { useInventory } from "@/lib/hooks/inventory";
+import { mockInventory } from "@/lib/mocks";
 import { formatDate } from "@/lib/utils";
 import type { InventoryItem } from "@/types";
 
 export default function InventoryPage() {
-  const { data } = useInventory();
+  const { data = mockInventory } = useInventory();
   return (
     <ResourcePage<InventoryItem>
       title="Inventory"

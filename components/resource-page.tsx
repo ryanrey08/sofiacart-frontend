@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function ResourcePage<T extends Record<string, unknown>>({
+export function ResourcePage<T extends object>({
   title,
   description,
   data,
@@ -25,7 +25,7 @@ export function ResourcePage<T extends Record<string, unknown>>({
     if (!normalized) return data;
 
     return data.filter((item) =>
-      searchKeys.some((key) => String(item[key] ?? "").toLowerCase().includes(normalized)),
+      searchKeys.some((key) => String((item as Record<string, unknown>)[String(key)] ?? "").toLowerCase().includes(normalized)),
     );
   }, [data, query, searchKeys]);
 

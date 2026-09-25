@@ -15,7 +15,7 @@ export interface DataTableColumn<T> {
   render?: (row: T) => ReactNode;
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   data,
   columns,
   pageSize = 5,
@@ -32,8 +32,8 @@ export function DataTable<T extends Record<string, unknown>>({
     if (!sortKey) return data;
 
     return [...data].sort((left, right) => {
-      const a = left[sortKey as keyof T];
-      const b = right[sortKey as keyof T];
+      const a = (left as Record<string, unknown>)[sortKey];
+      const b = (right as Record<string, unknown>)[sortKey];
       if (a === b) return 0;
       if (a === undefined || a === null) return 1;
       if (b === undefined || b === null) return -1;
@@ -82,7 +82,9 @@ export function DataTable<T extends Record<string, unknown>>({
                 <tr key={index} className="hover:bg-slate-50/70">
                   {columns.map((column) => (
                     <td key={String(column.key)} className={cn("px-4 py-3 text-slate-700", column.className)}>
-                      {column.render ? column.render(row) : String(row[column.key as keyof T] ?? "—")}
+                      {column.render
+                        ? column.render(row)
+                        : String((row as Record<string, unknown>)[String(column.key)] ?? "—")}
                     </td>
                   ))}
                 </tr>

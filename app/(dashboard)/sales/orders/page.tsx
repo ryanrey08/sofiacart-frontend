@@ -2,11 +2,12 @@
 import { ResourcePage } from "@/components/resource-page";
 import { StatusBadge } from "@/components/status-badge";
 import { useOrders } from "@/lib/hooks/orders";
+import { mockOrders } from "@/lib/mocks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Order } from "@/types";
 
 export default function OrdersPage() {
-  const { data } = useOrders();
+  const { data = mockOrders } = useOrders();
   return (
     <ResourcePage<Order>
       title="Orders"
