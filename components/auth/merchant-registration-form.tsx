@@ -170,13 +170,8 @@ export function MerchantRegistrationForm() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       router.push("/login?registered=1");
-    } catch (error: unknown) {
-      if (typeof error === "object" && error !== null && "response" in error) {
-        setSubmitError("We could not submit the registration right now. Please review your details and try again.");
-        return;
-      }
-
-      router.push("/login?registered=1");
+    } catch {
+      setSubmitError("We could not submit the registration right now. Please check your API connection and try again.");
     }
   };
 

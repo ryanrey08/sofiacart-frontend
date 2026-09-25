@@ -15,16 +15,6 @@ import { setStoredAuth } from "@/lib/auth";
 import { loginSchema, type LoginSchema } from "@/lib/validation/auth";
 import type { AuthResponse } from "@/types";
 
-const demoAuth: AuthResponse = {
-  token: "demo-merchant-token",
-  user: {
-    id: 1,
-    name: "Sofia Reyes",
-    email: "merchant@sofiacart.test",
-    role: "merchant",
-  },
-};
-
 export function LoginForm({ registrationSuccess = false }: { registrationSuccess?: boolean }) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
@@ -54,8 +44,7 @@ export function LoginForm({ registrationSuccess = false }: { registrationSuccess
         return;
       }
 
-      setStoredAuth(demoAuth);
-      router.push("/");
+      setFormError("We couldn't reach the sign-in service. Please try again when the API is available.");
     }
   };
 

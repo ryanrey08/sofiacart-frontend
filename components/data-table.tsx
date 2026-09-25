@@ -19,10 +19,12 @@ export function DataTable<T extends object>({
   data,
   columns,
   pageSize = 5,
+  getRowKey,
 }: {
   data: T[];
   columns: DataTableColumn<T>[];
   pageSize?: number;
+  getRowKey?: (row: T, index: number) => string | number;
 }) {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -79,7 +81,17 @@ export function DataTable<T extends object>({
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {paginated.map((row, index) => (
-                <tr key={index} className="hover:bg-slate-50/70">
+                <tr
+                  key={
+                    getRowKey?.(row, index) ??
+                    (row as Record<string, string | number>).id ??
+                    (row as Record<string, string | number>).orderNumber ??
+                    (row as Record<string, string | number>).paymentId ??
+                    (row as Record<string, string | number>).reference ??
+                    index
+                  }
+                  className="hover:bg-slate-50/70"
+                >
                   {columns.map((column) => (
                     <td key={String(column.key)} className={cn("px-4 py-3 text-slate-700", column.className)}>
                       {column.render
