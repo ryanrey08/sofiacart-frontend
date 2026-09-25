@@ -13,6 +13,7 @@ export interface DataTableColumn<T> {
   sortable?: boolean;
   className?: string;
   render?: (row: T) => ReactNode;
+  sortValue?: (row: T) => string | number | Date | null | undefined;
 }
 
 export function DataTable<T extends object>({
@@ -34,15 +35,30 @@ export function DataTable<T extends object>({
     if (!sortKey) return data;
 
     return [...data].sort((left, right) => {
-      const a = (left as Record<string, unknown>)[sortKey];
-      const b = (right as Record<string, unknown>)[sortKey];
+      const column = columns.find((entry) => String(entry.key) === sortKey);
+      const a = column?.sortValue ? column.sortValue(left) : (left as Record<string, unknown>)[sortKey];
+      const b = column?.sortValue ? column.sortValue(right) : (right as Record<string, unknown>)[sortKey];
       if (a === b) return 0;
       if (a === undefined || a === null) return 1;
       if (b === undefined || b === null) return -1;
-      const comparison = String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
+
+      let comparison = 0;
+      if (typeof a === "number" && typeof b === "number") {
+        comparison = a - b;
+      } else if (a instanceof Date && b instanceof Date) {
+        comparison = a.getTime() - b.getTime();
+      } else {
+        const parsedA = Date.parse(String(a));
+        const parsedB = Date.parse(String(b));
+        comparison =
+          !Number.isNaN(parsedA) && !Number.isNaN(parsedB)
+            ? parsedA - parsedB
+            : String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
+      }
+
       return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [data, sortDirection, sortKey]);
+  }, [columns, data, sortDirection, sortKey]);
 
   const pages = Math.max(1, Math.ceil(sortedData.length / pageSize));
   const currentPage = Math.min(page, pages);

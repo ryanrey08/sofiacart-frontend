@@ -1,13 +1,17 @@
 import type {
   Category,
   Customer,
+  CustomerReportRow,
   DashboardData,
   InventoryItem,
+  InventoryReportRow,
   Order,
   Payment,
   Product,
+  ProductReportRow,
   Refund,
   ReportData,
+  SalesReportRow,
   Transaction,
 } from "@/types";
 
@@ -96,7 +100,12 @@ export const mockDashboard: DashboardData = {
   ],
 };
 
-export const mockReports: Record<"sales" | "customers" | "products" | "inventory", ReportData> = {
+export const mockReports: {
+  sales: ReportData<SalesReportRow>;
+  customers: ReportData<CustomerReportRow>;
+  products: ReportData<ProductReportRow>;
+  inventory: ReportData<InventoryReportRow>;
+} = {
   sales: {
     cards: [
       { label: "Gross Sales", value: "₱128,400", change: "+14.8%" },

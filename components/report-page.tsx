@@ -5,7 +5,7 @@ import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ReportData } from "@/types";
 
-export function ReportPage({
+export function ReportPage<T extends object>({
   title,
   description,
   report,
@@ -13,8 +13,8 @@ export function ReportPage({
 }: {
   title: string;
   description: string;
-  report: ReportData;
-  columns: DataTableColumn<Record<string, string | number>>[];
+  report: ReportData<T>;
+  columns: DataTableColumn<T>[];
 }) {
   return (
     <div className="space-y-6">

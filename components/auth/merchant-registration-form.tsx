@@ -133,15 +133,31 @@ export function MerchantRegistrationForm() {
 
   const slugAvailable = useMemo(() => storeSlug.length >= 4 && !storeSlug.includes("--"), [storeSlug]);
 
-  const updatePreview = (file: File | null, setPreview: (value: string | null) => void) => {
+  useEffect(() => {
+    return () => {
+      [logoPreview, bannerPreview, idPreview].forEach((preview) => {
+        if (preview?.startsWith("blob:")) {
+          URL.revokeObjectURL(preview);
+        }
+      });
+    };
+  }, [bannerPreview, idPreview, logoPreview]);
+
+  const updatePreview = (
+    file: File | null,
+    currentPreview: string | null,
+    setPreview: (value: string | null) => void,
+  ) => {
+    if (currentPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(currentPreview);
+    }
+
     if (!file || !file.type.startsWith("image/")) {
       setPreview(null);
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => setPreview(typeof reader.result === "string" ? reader.result : null);
-    reader.readAsDataURL(file);
+    setPreview(URL.createObjectURL(file));
   };
 
   const nextStep = async () => {
@@ -313,7 +329,7 @@ export function MerchantRegistrationForm() {
                         onChange={(event) => {
                           const file = event.target.files?.[0] ?? null;
                           setValue("storeLogo", file, { shouldValidate: true });
-                          updatePreview(file, setLogoPreview);
+                          updatePreview(file, logoPreview, setLogoPreview);
                         }}
                       />
                       <FieldError message={errors.storeLogo?.message as string | undefined} />
@@ -327,7 +343,7 @@ export function MerchantRegistrationForm() {
                         onChange={(event) => {
                           const file = event.target.files?.[0] ?? null;
                           setValue("storeBanner", file, { shouldValidate: true });
-                          updatePreview(file, setBannerPreview);
+                          updatePreview(file, bannerPreview, setBannerPreview);
                         }}
                       />
                     </div>
@@ -367,7 +383,7 @@ export function MerchantRegistrationForm() {
                         onChange={(event) => {
                           const file = event.target.files?.[0] ?? null;
                           setValue("governmentIdFile", file, { shouldValidate: true });
-                          updatePreview(file, setIdPreview);
+                          updatePreview(file, idPreview, setIdPreview);
                         }}
                       />
                       <p className="mt-2 text-xs text-slate-500">Use a clear image of the front of your valid ID.</p>

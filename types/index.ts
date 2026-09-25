@@ -122,6 +122,34 @@ export interface ChartPoint {
   value: number;
 }
 
+export interface SalesReportRow {
+  order: string;
+  customer: string;
+  total: string;
+  status: Extract<StatusTone, "completed" | "processing" | "pending" | "cancelled" | "shipped">;
+}
+
+export interface CustomerReportRow {
+  customer: string;
+  orders: number;
+  spent: string;
+  status: Extract<StatusTone, "active" | "inactive">;
+}
+
+export interface ProductReportRow {
+  product: string;
+  sales: number;
+  stock: number;
+  status: Extract<StatusTone, "active" | "draft" | "inactive">;
+}
+
+export interface InventoryReportRow {
+  product: string;
+  stock: number;
+  threshold: number;
+  status: Extract<StatusTone, "low" | "in-stock">;
+}
+
 export interface DashboardData {
   metrics: Metric[];
   salesChart: ChartPoint[];
@@ -130,10 +158,10 @@ export interface DashboardData {
   lowStockItems: Array<{ name: string; stock: number; threshold: number }>;
 }
 
-export interface ReportData {
+export interface ReportData<T extends object = Record<string, string | number>> {
   cards: SummaryCard[];
   chart: ChartPoint[];
-  table: Array<Record<string, string | number>>;
+  table: T[];
 }
 
 export interface MerchantRegistrationFormValues {
