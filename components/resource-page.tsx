@@ -78,7 +78,11 @@ export function ResourcePage<T extends object>({
                 className="h-11 w-full rounded-xl border border-border bg-white pl-10 pr-4 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
               />
             </div>
+            <label htmlFor="status-filter" className="sr-only">
+              Filter records by status
+            </label>
             <select
+              id="status-filter"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
               className="h-11 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-brand-400"

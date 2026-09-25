@@ -2,6 +2,7 @@
 
 import type { ComponentProps } from "react";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -99,6 +100,7 @@ export function MerchantRegistrationForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [slugEdited, setSlugEdited] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [scaffoldComplete, setScaffoldComplete] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
@@ -186,8 +188,13 @@ export function MerchantRegistrationForm() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       router.push("/login?registered=1");
-    } catch {
-      setSubmitError("We could not submit the registration right now. Please check your API connection and try again.");
+    } catch (error: unknown) {
+      if (typeof error === "object" && error !== null && "response" in error) {
+        setSubmitError("We could not submit the registration right now. Please check your API connection and try again.");
+        return;
+      }
+
+      setScaffoldComplete(true);
     }
   };
 
@@ -198,6 +205,34 @@ export function MerchantRegistrationForm() {
       <FieldError message={errors[name]?.message as string | undefined} />
     </div>
   );
+
+  if (scaffoldComplete) {
+    return (
+      <div className="min-h-screen bg-brand-soft px-4 py-8 lg:px-8">
+        <div className="mx-auto max-w-3xl">
+          <Card className="border-none bg-white/92">
+            <CardHeader className="text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-green-700">
+                <CheckCircle2 className="h-7 w-7" />
+              </div>
+              <CardTitle className="text-3xl">Preview registration complete</CardTitle>
+              <CardDescription>
+                Your merchant details passed the scaffold flow locally. Connect the Laravel API to submit the application to the backend.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button asChild>
+                <Link href="/login">Go to login</Link>
+              </Button>
+              <Button variant="outline" onClick={() => setScaffoldComplete(false)}>
+                Review details
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-brand-soft px-4 py-8 lg:px-8">

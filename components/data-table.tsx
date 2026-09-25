@@ -121,8 +121,10 @@ export function DataTable<T extends object>({
           </table>
         </div>
         <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4">
-          <p className="text-sm text-muted-foreground">Page {currentPage} of {pages}</p>
-          <div className="flex gap-2">
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            Page {currentPage} of {pages}
+          </p>
+          <nav aria-label="Table pagination" className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -139,7 +141,7 @@ export function DataTable<T extends object>({
             >
               Next
             </Button>
-          </div>
+          </nav>
         </div>
       </CardContent>
     </Card>
