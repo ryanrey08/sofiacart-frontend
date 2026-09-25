@@ -87,7 +87,7 @@ function PreviewTile({ label, file, preview }: { label: string; file: File | nul
           <Image src={preview} alt={label} fill unoptimized className="object-cover" />
         </div>
       ) : (
-        <p className="mt-2">Upload a PNG, JPG, or PDF file.</p>
+        <p className="mt-2">Upload an image file to preview it here.</p>
       )}
       {file ? <p className="mt-2 truncate text-xs text-slate-500">{file.name}</p> : null}
     </div>
@@ -160,7 +160,7 @@ export function MerchantRegistrationForm() {
     Object.entries(values).forEach(([key, value]) => {
       if (value instanceof File) {
         formData.append(key, value);
-      } else if (value) {
+      } else if (value !== null && value !== undefined) {
         formData.append(key, value);
       }
     });

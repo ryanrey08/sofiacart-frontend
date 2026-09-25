@@ -19,15 +19,46 @@ export function ResourcePage<T extends object>({
   searchKeys: (keyof T)[];
 }) {
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredData = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return data;
 
-    return data.filter((item) =>
-      searchKeys.some((key) => String((item as Record<string, unknown>)[String(key)] ?? "").toLowerCase().includes(normalized)),
-    );
-  }, [data, query, searchKeys]);
+    return data.filter((item) => {
+      const matchesQuery =
+        !normalized ||
+        searchKeys.some((key) =>
+          String((item as Record<string, unknown>)[String(key)] ?? "")
+            .toLowerCase()
+            .includes(normalized),
+        );
+
+      const status = String((item as Record<string, unknown>).status ?? "").toLowerCase();
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" ? ["active", "completed", "paid", "shipped", "in-stock"].includes(status) : ["pending", "processing", "failed", "cancelled", "rejected", "inactive", "draft", "low"].includes(status));
+
+      return matchesQuery && matchesStatus;
+    });
+  }, [data, query, searchKeys, statusFilter]);
+
+  const tableKey = useMemo(
+    () =>
+      [
+        query,
+        statusFilter,
+        ...filteredData.map((item) =>
+          String(
+            (item as Record<string, unknown>).id ??
+              (item as Record<string, unknown>).orderNumber ??
+              (item as Record<string, unknown>).paymentId ??
+              (item as Record<string, unknown>).reference ??
+              JSON.stringify(item),
+          ),
+        ),
+      ].join("|"),
+    [filteredData, query, statusFilter],
+  );
 
   return (
     <div className="space-y-6">
@@ -47,15 +78,19 @@ export function ResourcePage<T extends object>({
                 className="h-11 w-full rounded-xl border border-border bg-white pl-10 pr-4 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
               />
             </div>
-            <select className="h-11 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-brand-400">
-              <option>All statuses</option>
-              <option>Active only</option>
-              <option>Needs attention</option>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="h-11 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-brand-400"
+            >
+              <option value="all">All statuses</option>
+              <option value="active">Active only</option>
+              <option value="attention">Needs attention</option>
             </select>
           </CardContent>
         </Card>
       </div>
-      <DataTable data={filteredData} columns={columns} pageSize={6} />
+      <DataTable key={tableKey} data={filteredData} columns={columns} pageSize={6} />
     </div>
   );
 }

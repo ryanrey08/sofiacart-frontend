@@ -107,8 +107,22 @@ export function DataTable<T extends object>({
         <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4">
           <p className="text-sm text-muted-foreground">Page {currentPage} of {pages}</p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage === 1}>Previous</Button>
-            <Button variant="outline" size="sm" onClick={() => setPage((value) => Math.min(pages, value + 1))} disabled={currentPage === pages}>Next</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((value) => Math.min(pages, value + 1))}
+              disabled={currentPage === pages}
+            >
+              Next
+            </Button>
           </div>
         </div>
       </CardContent>
