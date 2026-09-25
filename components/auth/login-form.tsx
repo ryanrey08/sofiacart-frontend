@@ -15,7 +15,13 @@ import { setStoredAuth } from "@/lib/auth";
 import { loginSchema, type LoginSchema } from "@/lib/validation/auth";
 import type { AuthResponse } from "@/types";
 
-export function LoginForm({ registrationSuccess = false }: { registrationSuccess?: boolean }) {
+export function LoginForm({
+  registrationSuccess = false,
+  redirectTo = "/dashboard",
+}: {
+  registrationSuccess?: boolean;
+  redirectTo?: string;
+}) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -37,7 +43,7 @@ export function LoginForm({ registrationSuccess = false }: { registrationSuccess
     try {
       const response = await api.post<AuthResponse>("/api/auth/login", values);
       setStoredAuth(response.data);
-      router.push("/");
+      router.push(redirectTo);
     } catch (error: unknown) {
       if (typeof error === "object" && error !== null && "response" in error) {
         setFormError("Invalid credentials. Please check your email and password.");

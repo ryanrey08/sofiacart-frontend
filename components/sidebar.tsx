@@ -36,7 +36,7 @@ const sections = [
 export function Sidebar() {
   return (
     <aside className="sticky top-0 hidden h-screen w-80 shrink-0 flex-col border-r border-white/60 bg-white/80 px-5 py-6 backdrop-blur xl:flex">
-      <Link href="/" className="rounded-2xl bg-brand-gradient p-5 text-white shadow-soft">
+      <Link href="/dashboard" className="rounded-2xl bg-brand-gradient p-5 text-white shadow-soft">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-lg font-bold">SC</div>
           <div>
@@ -52,7 +52,7 @@ export function Sidebar() {
       </Link>
 
       <nav className="mt-6 flex-1 space-y-6 overflow-y-auto pr-1">
-        <Link href="/" className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3 font-semibold text-brand-700">
+        <Link href="/dashboard" className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3 font-semibold text-brand-700">
           <LayoutDashboard className="h-5 w-5" />
           Dashboard Overview
         </Link>
