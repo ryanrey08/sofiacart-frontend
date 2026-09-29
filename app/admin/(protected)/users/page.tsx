@@ -286,7 +286,7 @@ function UserForm({ editing, onDone }: { editing: Editing; onDone: (message: str
       } else {
         const response = await createAdminUser(payload);
         await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-        onDone(`${response.message} A password setup link was sent to ${response.password_setup.email}.`);
+        onDone(`${response.message} A password setup email was requested for ${response.password_setup.email} (link valid for ${response.password_setup.expires_in_minutes} minutes).`);
       }
     } catch (error) {
       const details = parseApiError(error);

@@ -74,7 +74,7 @@ A browser run was also done against a local mock server that returns the backend
 - **Backend configuration needed:**
   - `NEXT_PUBLIC_API_URL` must point to the Laravel app root.
   - The backend must allow this frontend's origin (CORS) and the `Authorization` header.
-- **Reset link:** the backend does not customise its password-reset link. Its reset email needs to link to `/admin/reset-password?token=…&email=…` on this frontend.
+- **Password reset / admin invite emails (backend blocker):** `sofiacart-backend` sends reset links through Laravel's default `ResetPassword` notification, which needs a route named `password.reset`. No such route exists and `ResetPassword::createUrlUsing` is never registered. The backend catches and logs the resulting exception, so no email is sent even though the API responds with success. Newly invited admins, who get a random password, therefore cannot sign in until the backend builds links to `/admin/reset-password?token=…&email=…` on this frontend. The frontend reset page is ready for that link.
 - **List filters:** the backend's admin orders, products, payments and refunds lists have no merchant filter, so none is offered in the UI.
 - **Permission picker:** it loads up to 100 permissions, the backend's maximum `per_page`.
 - **Custom permissions:** they can be created and assigned to roles, but backend routes only enforce the built-in permission names.
