@@ -36,6 +36,12 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
    npm run test:smoke
    ```
 
+6. Run the admin RBAC unit tests (no build required):
+
+   ```bash
+   npm run test:unit
+   ```
+
 ## Project structure
 
 - `app/` — App Router pages for auth, dashboard, management, and reports
@@ -44,6 +50,15 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
 - `lib/hooks` — resource-specific React Query hooks for Laravel API endpoints
 - `lib/validation` — Zod schemas for login and merchant registration flows
 - `types/` — strict TypeScript DTOs and domain models
+- `app/admin` — Super Admin console (`/admin/login`, protected modules under `app/admin/(protected)`)
+- `components/admin`, `lib/admin`, `lib/api/admin*.ts`, `types/admin.ts` — admin UI kit, RBAC helpers, isolated admin API client, and DTOs
+
+## Super Admin console
+
+- Open `/admin/login` and sign in with a backend admin account (`POST /api/admin/auth/login`). The admin token is kept in `sessionStorage` and sent only by the dedicated admin Axios client, so it never mixes with the merchant session.
+- Every page is guarded by the `effective_permissions` returned by `GET /api/admin/auth/me`; the sidebar only lists modules the account may open. Permission names mirror `AdminPermissionRegistry` in `sofiacart-backend`.
+- Modules: Dashboard, Merchants (list, onboarding, billing, detail), Orders, Products, Customers, Payments (payments, transactions, refunds), Reports, Platform Settings, User Management, Roles & Permissions, System Logs, and Active Sessions.
+- `/admin/reset-password?token=...&email=...` submits to `POST /api/admin/auth/reset-password`. The backend does not yet customise its reset-link URL, so that link must be configured in `sofiacart-backend` to point at this page.
 
 ## Notes
 
