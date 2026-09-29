@@ -35,7 +35,7 @@ export default function LandingPage() {
               Launch, manage, and grow your store with SofiaCart.
             </h1>
             <p className="mt-5 max-w-2xl text-lg text-slate-600">
-              SofiaCart gives merchants a polished storefront, step-by-step onboarding, and a secure dashboard for orders, finance, inventory, and reports.
+              Explore step-by-step merchant onboarding and a preview dashboard for orders, finance, inventory, and reports.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg">

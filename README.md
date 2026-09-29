@@ -30,6 +30,12 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
    npm run build
    ```
 
+5. Smoke-check the built public routes:
+
+   ```bash
+   npm run test:smoke
+   ```
+
 ## Project structure
 
 - `app/` — App Router pages for auth, dashboard, management, and reports
@@ -44,3 +50,4 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
 - All API requests use `NEXT_PUBLIC_API_URL` as the base URL.
 - Example resolution: `NEXT_PUBLIC_API_URL=http://localhost:8000` + `/api/v1/orders` => `http://localhost:8000/api/v1/orders`.
 - Management and report views include realistic placeholder data so the UI renders cleanly before the Laravel backend is connected.
+- The dashboard overview always shows sample data; management and report views fall back to samples when requests fail. Login requires a working API. The backend endpoints and response contracts used by this scaffold have not been verified against a live backend.
