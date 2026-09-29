@@ -12,7 +12,7 @@ async function freePort() {
   return port;
 }
 
-test("built public routes render the landing, login, and registration pages", { timeout: 30_000 }, async () => {
+test("built public routes render the landing, login, registration, and admin login pages", { timeout: 30_000 }, async () => {
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port)], {
@@ -39,6 +39,7 @@ test("built public routes render the landing, login, and registration pages", { 
       ["/", "Register Merchant"],
       ["/login", "Welcome back"],
       ["/register/merchant", "Merchant registration"],
+      ["/admin/login", "Admin sign in"],
     ]) {
       const response = await fetch(`${baseUrl}${path}`);
       assert.equal(response.status, 200, `${path} should render`);
