@@ -1,3 +1,5 @@
+import type { ProductStatus } from "./admin";
+
 export type StatusTone =
   | "completed"
   | "paid"
@@ -218,4 +220,53 @@ export interface MerchantRegistrationFormValues {
   governmentIdNumber: string;
   governmentIdExpiry: string;
   governmentIdFile: File | null;
+}
+
+// Merchant catalog DTOs mirror sofiacart-backend app/Http/Resources/{Product,Category,InventoryLog}Resource.php.
+export type { Paginated, ProductStatus } from "./admin";
+
+export interface CategoryResource {
+  id: number;
+  merchant_id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ProductResource {
+  id: number;
+  merchant_id: number;
+  category_id: number | null;
+  name: string;
+  slug: string;
+  sku: string;
+  description: string | null;
+  status: ProductStatus;
+  price: string | number;
+  stock_quantity: number;
+  images: string[] | null;
+  category?: CategoryResource | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface InventoryLogResource {
+  id: number;
+  merchant_id: number;
+  product_id: number;
+  user_id: number;
+  reason: string;
+  quantity_change: number;
+  resulting_stock: number;
+  notes: string | null;
+  product?: ProductResource | null;
+  created_at: string | null;
+}
+
+export interface InventoryAdjustResponse {
+  message: string;
+  product: ProductResource;
+  inventory_log: InventoryLogResource;
 }
