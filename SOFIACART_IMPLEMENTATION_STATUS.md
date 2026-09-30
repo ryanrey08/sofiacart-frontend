@@ -2,6 +2,128 @@
 
 _Last updated: 2026-09-30_
 
+## Scope of this update: merchant product management
+
+The merchant **Products** page (`/sales/products`) no longer uses sample data. It now calls the Laravel product and inventory APIs through the shared merchant Axios client (`lib/api/axios.ts`), which uses `NEXT_PUBLIC_API_URL` as the base URL and sends the stored merchant token as a Sanctum bearer `Authorization` header. Before any edits, the contract was read from `sofiacart-backend` `main` (commit `b25ef23`):
+
+- routes: `routes/api.php`
+- controllers: `ProductsController`, `InventoryController`, `CategoryController`
+- validation: `StoreProductRequest`, `UpdateProductRequest`, `AdjustInventoryRequest`
+- resources: `ProductResource`, `CategoryResource`, `InventoryLogResource`
+- merchant scoping: the `InteractsWithMerchantScope` trait
+- schema: the `ProductStatus` enum, the products migration and `config/filesystems.php`
+- tests: `tests/Feature/ProductCrudTest.php`, `tests/Feature/InventoryAdjustmentTest.php`
+
+No endpoints, fields or response shapes were invented.
+
+### Endpoints used (all `auth:sanctum`, scoped by the backend to the token's merchant)
+
+| Feature | Request | Response consumed |
+| --- | --- | --- |
+| List, search and filter | `GET /api/v1/products?search=&status=&category_id=&page=&per_page=15` | paginated `{ data: ProductResource[], links, meta }` |
+| View | `GET /api/v1/products/{id}` | `{ data: ProductResource }` |
+| Create | `POST /api/v1/products` (multipart) | `201 { data: ProductResource }` |
+| Edit | `POST /api/v1/products/{id}` with `_method=PATCH` (multipart; PHP only parses multipart bodies on POST) | `{ data: ProductResource }` |
+| Archive / restore | `PATCH /api/v1/products/{id}` `{ status }` (JSON) | `{ data: ProductResource }` |
+| Delete | `DELETE /api/v1/products/{id}` (hard delete) | `204` |
+| Inventory update | `POST /api/v1/inventory/adjust` `{ product_id, quantity_change, reason, notes }` | `{ message, product, inventory_log }` |
+| Inventory history (in the product view) | `GET /api/v1/inventory/logs?product_id=&per_page=10` | paginated `InventoryLogResource` |
+| Category options | `GET /api/v1/categories?per_page=100` (the backend maximum) | paginated `CategoryResource` |
+
+### Fields supported (only what the backend defines)
+
+- **Product fields:** `name`, `slug`, `sku`, `description`, `category_id`, `status`, `price`, `stock_quantity`, and `images[]`.
+- **Not supported by the backend:** variants and options. The backend has no such fields, so none were added.
+- **Store ownership:** `merchant_id` is never sent. The backend takes the merchant from the token, restricts every read and write to that merchant, and rejects categories that belong to another merchant (404).
+- **Account check:** the page also shows "Access restricted" when the stored user isn't a merchant linked to a store. The backend does not allow merchant writes for such accounts either.
+- **Status:** the form offers `draft`, `pending_approval`, `active` and `archived`.
+  - The backend's `rejected` value is shown for a product only when it already has that status.
+  - This is a UI choice; the backend would accept any value of the enum.
+- **Images:** JPG or PNG, up to 5120 KB each. They are appended as `images[]`, and the browser sets the multipart boundary.
+  - Uploading new images on edit **replaces** all current images, which is how the backend behaves. The form says so.
+  - The backend returns images as relative paths on its `public` disk. They are displayed from `NEXT_PUBLIC_API_URL/storage/<path>`, which requires `php artisan storage:link`.
+- **Deactivate:** "Archive" sets the status to `archived`; "Restore as draft" sets it back to `draft`.
+- **Stock on edit:** changing stock in the edit form writes `stock_quantity` directly. "Adjust stock" records a logged inventory change instead.
+
+### Validation, errors and UX
+
+- **Client-side validation (zod), following the FormRequests:**
+  - required `name`, `slug`, `sku`, `status`, `price`, `stock_quantity`; each text field is limited to 255 characters
+  - slug format checked with the same regex as the backend
+  - `price` ≥ 0 with at most 2 decimal places and within `decimal(12,2)`
+  - `stock_quantity` a whole number ≥ 0, within the unsigned-int range
+  - status must be a value of the enum
+  - images must be JPG/PNG, at most 5120 KB each
+  - inventory adjustment: whole-number change other than 0, required reason (≤ 255 characters), optional notes, and resulting stock not below zero
+- **Laravel 422 errors** are shown on the matching fields:
+  - Duplicate `sku` or `slug` ("has already been taken") get clear messages; both must be unique across all of SofiaCart, not just the store.
+  - `images.N` errors, including "failed to upload", appear on the Images field.
+  - Errors that aren't tied to a form field, such as `merchant`, appear at the top of the form.
+- **Other errors:**
+  - 404 for a category → "category not available for your store"; 404 for a product → "no longer exists or doesn't belong to your store".
+  - 413 → upload too large.
+  - 401 clears the session (existing interceptor); 403 gets its own message.
+  - Network failures give connection guidance.
+- **States:**
+  - loading, error with retry, and empty states
+  - buttons disabled while a request is running (spinners on form submits)
+  - confirmation before delete
+  - success notices built from the API response (name, SKU, status, new stock and the backend's message)
+- **Refreshing data:** after create, edit, status change or adjustment, the product returned by the API is written into the detail cache and the list is re-fetched from the API. After create, the list returns to page 1, where the new product appears (the backend sorts newest first). There is no mock fallback on this page any more.
+
+### Changed files
+
+- `app/(dashboard)/sales/products/page.tsx`: products page with list, filters, pagination and the create, view, edit, adjust, archive and delete actions
+- `components/merchant/product-form.tsx`, `product-details.tsx`, `inventory-adjust-form.tsx`, `product-image.tsx` (new)
+- `lib/hooks/products.ts`: React Query hooks that call the real API. The old mock-fallback `useProducts` was only used by this page.
+- `lib/merchant-products.ts` (new): multipart and adjust payload builders, image URLs, and 422/404/413 error mapping
+- `lib/validation/product.ts` (new)
+- `types/index.ts`: `ProductResource`, `CategoryResource`, `InventoryLogResource`, `InventoryAdjustResponse`; re-exports `Paginated`/`ProductStatus` from `types/admin.ts`
+- `tests/merchant-products.test.mjs` (new); `package.json` adds it to `test:unit`
+- `README.md`, `SOFIACART_IMPLEMENTATION_STATUS.md`
+- Reused without changes: the generic UI parts of `components/admin/ui.tsx` (Modal, Field, SelectInput, table, pagination and state components), `lib/admin/format.ts`, `lib/admin/use-debounced-value.ts`, `lib/utils.ts` `slugify`, and `lib/api/axios.ts`
+- **Backend:** no changes. The backend repository could not be modified or checked out from this task environment.
+
+### Commands run and results (Node v24.21.0)
+
+| Command | Result |
+| --- | --- |
+| `npm ci` | Passed |
+| `npm run lint` | Passed, 0 warnings |
+| `npx tsc --noEmit` | Passed |
+| `npm run test:unit` | 21/21 passed (11 new product tests covering schema, multipart keys and `_method`, no `merchant_id`, image rules, error mapping and inventory payload) |
+| `npm run build` | Passed; `/sales/products` built |
+| `npm run test:smoke` (after build) | 1/1 passed |
+
+**Browser request check (headless Chromium against `next dev`):** not a backend test. `NEXT_PUBLIC_API_URL` pointed at a local capture server that recorded each raw request and answered **every write with 503**, so no success response was faked.
+
+- **Reads:** the page sent `GET /api/v1/products` and `GET /api/v1/categories` with the bearer token.
+- **Create:** a form submit with a PNG sent `POST /api/v1/products` as `multipart/form-data` with a browser-generated boundary, the Laravel field names and an `images[]` file part. No `merchant_id` was sent.
+- **Other writes:**
+  - Edit sent multipart `POST /api/v1/products/41` with `_method=PATCH`.
+  - Adjust sent JSON `{product_id, quantity_change, reason, notes}`.
+  - Archive sent `PATCH {status:"archived"}`, and Delete sent `DELETE`.
+  - View loaded `GET /products/41` and `GET /inventory/logs?product_id=41`.
+  - For these checks the capture server returned one list row in the `ProductResource` shape so the row actions could be clicked.
+- **Validation:** empty-field messages, the automatic slug, and the negative-stock guard (no request sent) all appeared as expected.
+- **Error display:** every 503 was shown as an error, never as success.
+
+### Blockers and remaining work
+
+- **No live end-to-end or backend test run (blocker).** `sofiacart-backend` is not checked out in this environment, and this task may not clone other repositories. So no Laravel server was running, `php artisan test` (`ProductCrudTest`, `InventoryAdjustmentTest`) was **not run**, and no real 201, 422 or 204 response was observed. The integration matches the backend source but **has not been verified against a running API**.
+  - To verify: run the backend (`migrate --seed`, `storage:link`, `serve`) and set `NEXT_PUBLIC_API_URL=http://localhost:8000`.
+  - Then, as a verified merchant: create with images, try a duplicate SKU (expect 422), edit with and without images, archive, adjust stock (including a negative result, expect 422) and delete.
+  - Also run `php artisan test --filter='ProductCrud|InventoryAdjustment'`.
+- **Upload size:** the backend allows 5120 KB per image, but PHP's default `upload_max_filesize` is 2M and `post_max_size` is 8M. Unless the server is configured for larger uploads, bigger images come back as `images.N failed to upload` or 413. The UI shows both errors, but the server limits should be raised.
+- **CORS:** the Laravel CORS config must allow the frontend origin and the `Authorization` header (no `config/cors.php` is committed, so Laravel's defaults apply).
+- **Backend gaps, not worked around:**
+  - no variants or options
+  - no removal of single images (an edit replaces the whole set)
+  - `slug` and `sku` must be unique across all merchants
+  - merchants can set any status value of the enum
+- **Other merchant pages:** `/sales/inventory` still requests `/api/v1/inventory`, which the backend doesn't have, so it shows sample data. Inventory changes are now made from the Products page. Categories, orders and other merchant pages also still use sample-data fallbacks.
+- **Hydration error (existed before this change):** `next dev` logs a hydration mismatch on every dashboard page (for example `/sales/orders`). It comes from `AuthGuard` reading browser storage during render. It is unrelated to this change and was left as is.
+
 ## Scope of this update: merchant registration API integration
 
 ### Completed

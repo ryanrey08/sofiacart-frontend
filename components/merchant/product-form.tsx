@@ -57,7 +57,7 @@ export function ProductForm({
     control,
     setError,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isSubmitted },
   } = useForm<ProductFormValues, unknown, ValidatedProductForm>({
     resolver: zodResolver(productFormSchema),
     defaultValues: product ? productToFormValues(product) : emptyValues,
@@ -98,7 +98,7 @@ export function ProductForm({
             {...nameField}
             onChange={(event) => {
               void nameField.onChange(event);
-              if (!slugTouched) setValue("slug", slugify(event.target.value));
+              if (!slugTouched) setValue("slug", slugify(event.target.value), { shouldValidate: isSubmitted });
             }}
           />
         </Field>
