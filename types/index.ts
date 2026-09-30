@@ -18,11 +18,27 @@ export interface AuthUser {
   name: string;
   email: string;
   role: "admin" | "merchant";
+  merchant?: { id: number; status?: string } | null;
 }
 
 export interface AuthResponse {
   token: string;
   user: AuthUser;
+}
+
+export interface MerchantRegistrationResponse {
+  message: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    merchant?: { id: number; status?: string } | null;
+  };
+  merchant: {
+    id: number;
+    status: string;
+    store_name?: string;
+  };
 }
 
 export interface Order {
@@ -165,6 +181,11 @@ export interface ReportData<T extends object = Record<string, string | number>> 
 }
 
 export interface MerchantRegistrationFormValues {
+  name: string;
+  email: string;
+  password: string;
+  passwordConfirmation: string;
+  phone: string;
   businessName: string;
   businessType: string;
   permitNumber: string;
