@@ -6,14 +6,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
-import { Building2, CheckCircle2, Loader2, ShieldCheck, Store, UserCircle2 } from "lucide-react";
-import { isAxiosError } from "axios";
+import { Building2, CheckCircle2, Loader2, UserCircle2, Store, Users, BarChart3, ShieldCheck, Zap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StepperNav, type StepItem } from "@/components/stepper-nav";
+import {VerticalStepper } from "@/components/side-stepper";
 import api from "@/lib/api/axios";
 import { getStoredAuth } from "@/lib/auth";
 import { buildMerchantRegistrationFormData } from "@/lib/merchant-registration";
@@ -201,6 +201,76 @@ export function MerchantRegistrationForm() {
   const governmentIdFile = useWatch({ control, name: "governmentIdFile" }) ?? null;
   const businessPermit = useWatch({ control, name: "businessPermit" }) ?? null;
 
+  const features = [
+    {
+      title: "Sell Online",
+      description: "Showcase your products 24/7",
+      icon: Store,
+      badgeBg: "bg-[#FF6B00]", // Bright Orange
+    },
+    {
+      title: "Reach More Customers",
+      description: "Grow your business nationwide",
+      icon: Users,
+      badgeBg: "bg-[#5B3DF5]", // Deep Indigo/Purple
+    },
+    {
+      title: "Easy Store Management",
+      description: "Manage products, orders and sales in one dashboard",
+      icon: BarChart3,
+      badgeBg: "bg-[#FF2A7A]", // Hot Pink
+    },
+    {
+      title: "Secure & Reliable",
+      description: "Safe payments and trusted platform",
+      icon: ShieldCheck,
+      badgeBg: "bg-[#0099FF]", // Electric Blue
+    },
+  ];
+
+  const registrationCards = [
+    {
+      title: "Create Your Online Store",
+        subtitle: "with SofiaCart",
+        imageSrc: "/assets/house.png",
+        features: [
+          { id: 1, text: "Custom Shop URL", icon: Store, badgeBg: "bg-orange-500" },
+          { id: 2, text: "Instant Verification", icon: Zap, badgeBg: "bg-purple-600" },
+          { id: 3, text: "Encrypted Transactions", icon: Shield, badgeBg: "bg-blue-500" },
+        ],
+    },
+    {
+      title: "We Value Your Trust",
+        subtitle: "with SofiaCart",
+        imageSrc: "/assets/shield.png",
+        features: [
+          { id: 1, text: "Custom Shop URL", icon: Store, badgeBg: "bg-orange-500" },
+          { id: 2, text: "Instant Verification", icon: Zap, badgeBg: "bg-purple-600" },
+          { id: 3, text: "Encrypted Transactions", icon: Shield, badgeBg: "bg-blue-500" },
+        ],
+    },
+    {
+      title: "Almost There",
+        subtitle: "with SofiaCart",
+        imageSrc: "/assets/shield2.png",
+        features: [
+          { id: 1, text: "Custom Shop URL", icon: Store, badgeBg: "bg-orange-500" },
+          { id: 2, text: "Instant Verification", icon: Zap, badgeBg: "bg-purple-600" },
+          { id: 3, text: "Encrypted Transactions", icon: Shield, badgeBg: "bg-blue-500" },
+        ],
+    },
+    {
+      title: "Almost There",
+        subtitle: "with SofiaCart",
+        imageSrc: "/assets/shield2.png",
+        features: [
+          { id: 1, text: "Custom Shop URL", icon: Store, badgeBg: "bg-orange-500" },
+          { id: 2, text: "Instant Verification", icon: Zap, badgeBg: "bg-purple-600" },
+          { id: 3, text: "Encrypted Transactions", icon: Shield, badgeBg: "bg-blue-500" },
+        ],
+    }
+  ]
+
   useEffect(() => {
     if (!slugEdited) {
       setValue("storeSlug", slugify(storeName), { shouldValidate: currentStep >= 2 });
@@ -371,40 +441,87 @@ export function MerchantRegistrationForm() {
   return (
     <div className="min-h-screen bg-brand-soft px-4 py-8 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="rounded-[32px] bg-brand-gradient p-6 text-white shadow-soft">
+        <aside className="rounded-[32px] p-6 text-white">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold">SC</div>
-            <div>
-              <p className="text-lg font-semibold">SofiaCart</p>
-              <p className="text-sm text-white/80">Merchant registration</p>
+            <div className="flex w-full items-center justify-center text-lg font-bold">
+              <Image src="/assets/logo/sofia-cart-logo-no-bg.png" alt="SofiaCart Logo" width={300} height={300} />
             </div>
+            {/* <div>
+              <p className="text-xl font-semibold">Sofia<span className="text-[#fe8d1e]">Cart</span></p>
+              <p className="text-sm text-white/80">Everything in one cart</p>
+            </div> */}
           </div>
           <div className="mt-8">
-            <StepperNav steps={steps} currentStep={currentStep} orientation="vertical" />
+            {
+              currentStep === 1 ? <>
+              <p className="text-xl font-semibold">Be a SofiaCart Merchant</p>
+              <p className="text-sm text-white/80">open your online store and reach thousand of customers</p> 
+              </>:
+              <VerticalStepper steps={steps} currentStep={currentStep} promoCardProps={registrationCards[currentStep - 1]}/>
+            }
           </div>
-          <Card className="mt-8 border border-white/15 bg-white/10 text-white shadow-none">
-            <CardContent className="p-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/80">Why SofiaCart?</p>
-              <ul className="mt-4 space-y-3 text-sm text-white/85">
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />Multi-merchant tools for catalog, orders, and reporting.</li>
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />Flexible storefront branding with modern analytics.</li>
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />Guided onboarding with document verification.</li>
+          {
+            currentStep === 1 && 
+            <>
+                        <Card className="border-none mt-5 bg-transparent text-white shadow-soft-none">
+            <CardContent className="p-0">
+              <ul className="space-y-6">
+                {features.map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={index} className="flex items-center gap-4">
+                      {/* Rounded Icon Badge */}
+                      <div
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${item.badgeBg} text-white shadow-md`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </div>
+
+                      {/* Text Content */}
+                      <div className="flex flex-col">
+                        <h4 className="text-lg font-bold text-white leading-snug">
+                          {item.title}
+                        </h4>
+                        <p className="text-sm text-white/90 font-normal leading-tight">
+                          {item.description}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </CardContent>
           </Card>
+          <div className="mt-8 flex w-full justify-center pt-4">
+          <img
+            src="/assets/logo/laptop-image.png"
+            alt="SofiaCart Dashboard Preview"
+            /* Adjust 'max-w-md' (or max-w-sm, max-w-lg, max-w-[320px]) to set your desired maximum size */
+            className="h-auto w-full max-w-md object-contain drop-shadow-2xl transition-all duration-300"
+          />
+        </div>
+            </>
+          }
         </aside>
 
         <section className="space-y-6">
-          <Card className="border-none bg-white/80">
+          {/* <Card className="border-none bg-white/80">
             <CardContent className="p-5">
               <StepperNav steps={steps} currentStep={currentStep} />
             </CardContent>
-          </Card>
+          </Card> */}
 
           <Card className="border-none bg-white/92">
             <CardHeader className="border-b border-slate-100">
-              <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+            <CardContent className="p-5">
+            <CardTitle className="text-2xl">Merchant <span className="text-[#FF8B59]">Registration</span></CardTitle>
+            <CardDescription className="mb-3">Create your merchant account and start selling in SofiaCart</CardDescription>
+              <StepperNav steps={steps} currentStep={currentStep} />
+            </CardContent>
+            </CardHeader>
+            <CardContent className="px-6 pb-6">
+            <div className="flex items-start gap-4 mb-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-700">
                   {currentStep === 1 ? <Building2 className="h-6 w-6" /> : currentStep === 2 ? <Store className="h-6 w-6" /> : currentStep === 3 ? <ShieldCheck className="h-6 w-6" /> : <UserCircle2 className="h-6 w-6" />}
                 </div>
                 <div>
@@ -412,10 +529,8 @@ export function MerchantRegistrationForm() {
                   <CardDescription className="mt-1">{steps[currentStep - 1]?.description}</CardDescription>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <form className="space-y-6" onSubmit={handleSubmit(submitApplication)} aria-busy={isSubmitting}>
-                <fieldset disabled={isSubmitting} className="min-w-0 space-y-6 border-0 p-0">
+              <form className="space-y-6" onSubmit={handleSubmit(submitApplication)}>
+                <fieldset disabled={isSubmitting} className="space-y-6">
                 {currentStep === 1 ? (
                   <div className="grid gap-5 md:grid-cols-2">
                     <div className="md:col-span-2">
@@ -643,7 +758,7 @@ export function MerchantRegistrationForm() {
 
                 {submitError ? <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{submitError}</div> : null}
                 <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-between">
-                  <Button type="button" variant="outline" onClick={previousStep} disabled={currentStep === 1 || isSubmitting}>Previous</Button>
+                  <Button type="button" variant="outline" onClick={previousStep} disabled={currentStep === 1 || isSubmitting}>Cancel</Button>
                   {currentStep < 4 ? (
                     <Button type="button" onClick={nextStep} disabled={isSubmitting}>Next Step</Button>
                   ) : (

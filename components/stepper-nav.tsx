@@ -28,7 +28,7 @@ export function StepperNav({ steps, currentStep, orientation = "horizontal" }: {
             </div>
             <div>
               <p className="font-semibold text-slate-900">{step.title}</p>
-              <p className="text-sm text-muted-foreground">{step.description}</p>
+              {/* <p className="text-sm text-muted-foreground">{step.description}</p> */}
             </div>
           </div>
         );
