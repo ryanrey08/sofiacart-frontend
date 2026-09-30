@@ -62,6 +62,22 @@ test("merchant registration schema enforces password confirmation and Philippine
   }
 });
 
+test("merchant registration schema rejects invalid birth and ID expiry dates", () => {
+  const values = validValues();
+  const today = new Date().toISOString().slice(0, 10);
+  values.dateOfBirth = today;
+  values.governmentIdExpiry = today;
+
+  const result = merchantRegistrationSchema.safeParse(values);
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.deepEqual(
+      result.error.issues.map((issue) => issue.path.join(".")),
+      ["dateOfBirth", "governmentIdExpiry"],
+    );
+  }
+});
+
 test("multipart registration payload uses the Laravel names and upload fields", () => {
   const form = buildMerchantRegistrationFormData(validValues());
   assert.deepEqual([...form.keys()], [

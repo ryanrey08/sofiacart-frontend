@@ -246,6 +246,7 @@ export function MerchantRegistrationForm() {
   const previousStep = () => setCurrentStep((step) => Math.max(1, step - 1));
 
   const submitApplication = async (values: ValidatedMerchantRegistration) => {
+    if (currentStep !== 4) return;
     setSubmitError(null);
     clearErrors();
     if (hasRegisteredMerchant()) {
@@ -263,18 +264,25 @@ export function MerchantRegistrationForm() {
       if (isAxiosError<{ message?: string; errors?: Record<string, string | string[]> }>(error)) {
         const status = error.response?.status;
         const validationErrors = error.response?.data?.errors;
+        if (!error.response) {
+          setSubmitError("We couldn't reach the registration service. Check your internet connection, API URL, and backend CORS settings, then try again.");
+          return;
+        }
         if (status === 422 && validationErrors) {
           let earliestStep = 4;
           let mappedErrors = 0;
           for (const [backendField, messages] of Object.entries(validationErrors)) {
-            const field = registrationErrorFields[backendField];
             const message = Array.isArray(messages) ? messages[0] : messages;
-            if (!field || !message) continue;
-
-            setError(field, { type: "server", message });
-            mappedErrors += 1;
-            const step = Object.entries(fieldGroups).find(([, fields]) => fields.includes(field))?.[0];
-            if (step) earliestStep = Math.min(earliestStep, Number(step));
+            if (!message) continue;
+            const fields: (keyof MerchantRegistrationSchema)[] = backendField === "social_links"
+              ? ["facebook", "instagram", "tiktok", "website"]
+              : registrationErrorFields[backendField] ? [registrationErrorFields[backendField]] : [];
+            fields.forEach((field) => {
+              setError(field, { type: "server", message });
+              mappedErrors += 1;
+              const step = Object.entries(fieldGroups).find(([, groupFields]) => groupFields.includes(field))?.[0];
+              if (step) earliestStep = Math.min(earliestStep, Number(step));
+            });
           }
           if (mappedErrors > 0) setCurrentStep(earliestStep);
           setSubmitError(mappedErrors > 0
@@ -308,7 +316,8 @@ export function MerchantRegistrationForm() {
 
   if (merchantAuth === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-soft px-4">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-brand-soft px-4">
+        <h1 className="text-2xl font-semibold text-slate-900">Merchant registration</h1>
         <p className="text-sm text-muted-foreground">Checking your account…</p>
       </div>
     );

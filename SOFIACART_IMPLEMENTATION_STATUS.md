@@ -1,6 +1,51 @@
 # SofiaCart Frontend – Implementation Status
 
-_Last updated: 2026-09-29_
+_Last updated: 2026-09-30_
+
+## Scope of this update: merchant registration API integration
+
+### Completed
+
+The four-step merchant registration form now submits to the existing public Laravel registration endpoint through the shared Axios client. The existing step flow and entered values remain in place through review and submission. The client lets Axios/browser generate the multipart boundary.
+
+- **Endpoint:** `POST /api/merchant/register` (the configured `NEXT_PUBLIC_API_URL` must be the Laravel root URL, without `/api`).
+- **Multipart scalar fields:** `name`, `email`, `password`, `password_confirmation`, `phone`, `business_name`, `business_type`, `business_permit_number`, `tin`, `business_category`, `business_address`, `city`, `province`, `zip_code`, `store_name`, `store_slug`, `store_category`, `store_description`, `store_address`, `contact_phone`, `contact_email`, `social_links`, `owner_name`, `owner_position`, `owner_email`, `owner_phone`, `owner_birth_date`, `government_id_type`, `government_id_number`, `government_id_expiry_date`.
+- **File fields:** required `business_permit` (PDF/JPG/JPEG/PNG, max 5120 KB), required `store_logo` (JPG/JPEG/PNG, max 2048 KB), optional `store_banner` (JPG/JPEG/PNG, max 5120 KB), required `government_id` (PDF/JPG/JPEG/PNG, max 5120 KB). Social links are JSON-encoded in the `social_links` multipart field.
+- **Response:** consumes the actual `{ message, user, merchant }` response and shows its message, returned user name/email, and merchant status. A pending status is presented as awaiting approval; the user can continue to the existing `/login` route. Registration does not return or store a token.
+- **Validation/errors:** client-side rules cover required fields, password confirmation, Philippine phone formats, dates, slug syntax and upload types/sizes. Laravel 422 field keys are explicitly mapped to the form fields, including account and renamed fields. Duplicate (409), unauthorized/forbidden and connection/CORS failures receive general guidance; uniqueness remains server-validated.
+- **Existing auth state:** a signed-in merchant (merchant role or nested merchant in stored auth) is stopped before registration; unauthenticated visitors can proceed.
+
+### Changed files
+
+- `components/auth/merchant-registration-form.tsx`
+- `lib/merchant-registration.ts`
+- `lib/validation/merchant.ts`
+- `types/index.ts`
+- `tests/merchant-registration.test.mjs`
+- `package.json` (includes the contract tests in `test:unit`)
+- `SOFIACART_IMPLEMENTATION_STATUS.md`
+
+### Validation and test results
+
+| Command | Result |
+| --- | --- |
+| `npm ci` | Passed; 470 packages audited, 0 vulnerabilities reported |
+| `npm run test:unit` | Passed, 10/10 tests (includes registration schema and multipart contract tests) |
+| `npm run test:smoke` | Passed, 1/1; built public routes render |
+| `npm run lint` | Passed |
+| `npx tsc --noEmit` | Passed |
+| `npm run build` | Passed; `/register/merchant` included in the production build |
+
+The test suite verifies payload names, JSON social links, optional banner behavior, password confirmation, phone formats, and birth/expiry dates. It does not exercise a live API.
+An attempted local production-browser check could not run because the Playwright tool transport closed; the passing smoke test verifies public-route rendering, not interactive submission.
+
+### Live API/CORS verification and remaining work
+
+- **Not verified end-to-end:** the backend checkout is not present in this task environment (`/home/runner/work/sofiacart-backend` is unavailable), `NEXT_PUBLIC_API_URL` is unset, and no reachable Laravel API or credentials were provided. No request was sent to a live API.
+- Backend API/Laravel tests were **not run** because the backend checkout is unavailable. PHP/Composer setup and Laravel Boost setup were not applicable without that checkout or its setup instructions.
+- Configure `NEXT_PUBLIC_API_URL` to the Laravel root URL and allow the deployed frontend origin in Laravel CORS, then verify successful 201 registration, upload persistence, pending status, duplicate/422 errors and browser multipart/CORS behavior against a running backend.
+
+This completes the frontend implementation, but does not claim live frontend-to-Laravel verification.
 
 ## Scope of this update: Super Admin console
 
