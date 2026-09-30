@@ -36,7 +36,7 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
    npm run test:smoke
    ```
 
-6. Run the admin RBAC unit tests (no build required):
+6. Run the unit tests (admin RBAC, merchant registration and merchant products; no build required):
 
    ```bash
    npm run test:unit
@@ -59,6 +59,12 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
 - Every page is guarded by the `effective_permissions` returned by `GET /api/admin/auth/me`; the sidebar only lists modules the account may open. Permission names mirror `AdminPermissionRegistry` in `sofiacart-backend`.
 - Modules: Dashboard, Merchants (list, onboarding, billing, detail), Orders, Products, Customers, Payments (payments, transactions, refunds), Reports, Platform Settings, User Management, Roles & Permissions, System Logs, and Active Sessions.
 - `/admin/reset-password?token=...&email=...` submits to `POST /api/admin/auth/reset-password`. The backend does not yet customise its reset-link URL, so that link must be configured in `sofiacart-backend` to point at this page.
+
+## Merchant product management
+
+- `/sales/products` lists, creates (multipart with `images[]`), views, edits, archives and deletes the signed-in merchant's products, and adjusts stock. It calls `/api/v1/products`, `/api/v1/categories`, `/api/v1/inventory/adjust` and `/api/v1/inventory/logs`.
+- The backend decides which store a product belongs to from the merchant's token; the frontend never sends `merchant_id`.
+- Product images are shown from `NEXT_PUBLIC_API_URL/storage/<path>`, so run `php artisan storage:link` on the backend.
 
 ## Notes
 
