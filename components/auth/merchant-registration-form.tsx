@@ -1,13 +1,13 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { Building2, CheckCircle2, Loader2, ShieldCheck, Store, UserCircle2 } from "lucide-react";
+import { isAxiosError } from "axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StepperNav, type StepItem } from "@/components/stepper-nav";
 import api from "@/lib/api/axios";
+import { getStoredAuth } from "@/lib/auth";
+import { buildMerchantRegistrationFormData } from "@/lib/merchant-registration";
 import { slugify } from "@/lib/utils";
-import { merchantRegistrationSchema, type MerchantRegistrationSchema } from "@/lib/validation/merchant";
+import {
+  merchantRegistrationSchema,
+  type MerchantRegistrationSchema,
+  type ValidatedMerchantRegistration,
+} from "@/lib/validation/merchant";
+import type { MerchantRegistrationResponse } from "@/types";
 
 const steps: StepItem[] = [
   { id: 1, title: "Business Details", description: "Verify legal business information" },
@@ -26,13 +33,18 @@ const steps: StepItem[] = [
 ];
 
 const fieldGroups: Record<number, (keyof MerchantRegistrationSchema)[]> = {
-  1: ["businessName", "businessType", "permitNumber", "tin", "businessCategory", "businessPermit", "businessAddress", "city", "province", "zipCode"],
+  1: ["name", "email", "password", "passwordConfirmation", "phone", "businessName", "businessType", "permitNumber", "tin", "businessCategory", "businessPermit", "businessAddress", "city", "province", "zipCode"],
   2: ["storeName", "storeSlug", "storeCategory", "storeDescription", "storeContactNumber", "storeEmail", "storeAddress", "storeLogo", "storeBanner", "facebook", "instagram", "tiktok", "website"],
   3: ["ownerFullName", "ownerPosition", "ownerEmail", "ownerContactNumber", "dateOfBirth", "governmentIdType", "governmentIdNumber", "governmentIdExpiry", "governmentIdFile"],
   4: [],
 };
 
 const defaultValues: MerchantRegistrationSchema = {
+  name: "",
+  email: "",
+  password: "",
+  passwordConfirmation: "",
+  phone: "",
   businessName: "",
   businessType: "",
   permitNumber: "",
@@ -67,6 +79,60 @@ const defaultValues: MerchantRegistrationSchema = {
   governmentIdFile: null,
 };
 
+const registrationErrorFields: Record<string, keyof MerchantRegistrationSchema> = {
+  name: "name",
+  email: "email",
+  password: "password",
+  password_confirmation: "passwordConfirmation",
+  phone: "phone",
+  business_name: "businessName",
+  business_type: "businessType",
+  business_permit_number: "permitNumber",
+  tin: "tin",
+  business_category: "businessCategory",
+  business_permit: "businessPermit",
+  business_address: "businessAddress",
+  city: "city",
+  province: "province",
+  zip_code: "zipCode",
+  store_name: "storeName",
+  store_slug: "storeSlug",
+  store_category: "storeCategory",
+  store_description: "storeDescription",
+  store_address: "storeAddress",
+  contact_phone: "storeContactNumber",
+  contact_email: "storeEmail",
+  owner_name: "ownerFullName",
+  owner_position: "ownerPosition",
+  owner_email: "ownerEmail",
+  owner_phone: "ownerContactNumber",
+  owner_birth_date: "dateOfBirth",
+  government_id_type: "governmentIdType",
+  government_id_number: "governmentIdNumber",
+  government_id_expiry_date: "governmentIdExpiry",
+  government_id: "governmentIdFile",
+  "social_links.facebook": "facebook",
+  "social_links.instagram": "instagram",
+  "social_links.tiktok": "tiktok",
+  "social_links.website": "website",
+};
+
+function hasRegisteredMerchant() {
+  const user = getStoredAuth()?.user;
+  return Boolean(user && (user.role === "merchant" || user.merchant));
+}
+
+function subscribeToAuth(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", onChange);
+  return () => window.removeEventListener("storage", onChange);
+}
+
+function getMerchantAuthSnapshot(): boolean | undefined {
+  if (typeof window === "undefined") return undefined;
+  return hasRegisteredMerchant();
+}
+
 const options = {
   businessTypes: ["Sole Proprietorship", "Partnership", "Corporation", "Cooperative"],
   categories: ["Beauty", "Fashion", "Home", "Food", "Electronics", "Lifestyle"],
@@ -96,11 +162,17 @@ function PreviewTile({ label, file, preview }: { label: string; file: File | nul
 }
 
 export function MerchantRegistrationForm() {
-  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [slugEdited, setSlugEdited] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [scaffoldComplete, setScaffoldComplete] = useState(false);
+  const [hasMerchantOverride, setHasMerchantOverride] = useState<boolean | null>(null);
+  const [registrationResponse, setRegistrationResponse] = useState<MerchantRegistrationResponse | null>(null);
+  const merchantAuth = useSyncExternalStore<boolean | undefined>(
+    subscribeToAuth,
+    getMerchantAuthSnapshot,
+    () => undefined,
+  );
+  const hasMerchant = hasMerchantOverride ?? merchantAuth === true;
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
@@ -112,8 +184,10 @@ export function MerchantRegistrationForm() {
     setValue,
     trigger,
     getValues,
+    clearErrors,
+    setError,
     formState: { errors, isSubmitting },
-  } = useForm<MerchantRegistrationSchema>({
+  } = useForm<MerchantRegistrationSchema, unknown, ValidatedMerchantRegistration>({
     resolver: zodResolver(merchantRegistrationSchema),
     defaultValues,
     mode: "onTouched",
@@ -133,7 +207,7 @@ export function MerchantRegistrationForm() {
     }
   }, [currentStep, setValue, slugEdited, storeName]);
 
-  const slugAvailable = useMemo(() => storeSlug.length >= 4 && !storeSlug.includes("--"), [storeSlug]);
+  const slugFormatValid = useMemo(() => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(storeSlug), [storeSlug]);
 
   useEffect(() => {
     return () => {
@@ -171,30 +245,56 @@ export function MerchantRegistrationForm() {
 
   const previousStep = () => setCurrentStep((step) => Math.max(1, step - 1));
 
-  const submitApplication = async (values: MerchantRegistrationSchema) => {
+  const submitApplication = async (values: ValidatedMerchantRegistration) => {
     setSubmitError(null);
-
-    const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => {
-      if (value instanceof File) {
-        formData.append(key, value);
-      } else if (value !== null && value !== undefined) {
-        formData.append(key, value);
-      }
-    });
+    clearErrors();
+    if (hasRegisteredMerchant()) {
+      setHasMerchantOverride(true);
+      return;
+    }
 
     try {
-      await api.post("/api/merchant/register", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      router.push("/login?registered=1");
+      const response = await api.post<MerchantRegistrationResponse>(
+        "/api/merchant/register",
+        buildMerchantRegistrationFormData(values),
+      );
+      setRegistrationResponse(response.data);
     } catch (error: unknown) {
-      if (typeof error === "object" && error !== null && "response" in error) {
-        setSubmitError("We could not submit the registration right now. Please check your API connection and try again.");
+      if (isAxiosError<{ message?: string; errors?: Record<string, string | string[]> }>(error)) {
+        const status = error.response?.status;
+        const validationErrors = error.response?.data?.errors;
+        if (status === 422 && validationErrors) {
+          let earliestStep = 4;
+          let mappedErrors = 0;
+          for (const [backendField, messages] of Object.entries(validationErrors)) {
+            const field = registrationErrorFields[backendField];
+            const message = Array.isArray(messages) ? messages[0] : messages;
+            if (!field || !message) continue;
+
+            setError(field, { type: "server", message });
+            mappedErrors += 1;
+            const step = Object.entries(fieldGroups).find(([, fields]) => fields.includes(field))?.[0];
+            if (step) earliestStep = Math.min(earliestStep, Number(step));
+          }
+          if (mappedErrors > 0) setCurrentStep(earliestStep);
+          setSubmitError(mappedErrors > 0
+            ? "The server rejected some details. Please review the highlighted fields."
+            : error.response?.data?.message ?? "Please review the registration details and try again.");
+          return;
+        }
+        if (status === 409) {
+          setSubmitError("A registration with one or more of these details already exists. Review your email, TIN, and store URL.");
+          return;
+        }
+        if (status === 401 || status === 403) {
+          setSubmitError("Your current session cannot submit this registration. Sign out and try again, or sign in to your existing merchant account.");
+          return;
+        }
+        setSubmitError(error.response?.data?.message ?? "We could not submit your registration. Please try again.");
         return;
       }
 
-      setScaffoldComplete(true);
+      setSubmitError("We couldn't reach the registration service. Check your internet connection, API URL, and backend CORS settings, then try again.");
     }
   };
 
@@ -206,30 +306,55 @@ export function MerchantRegistrationForm() {
     </div>
   );
 
-  if (scaffoldComplete) {
+  if (merchantAuth === undefined) {
     return (
-      <div className="min-h-screen bg-brand-soft px-4 py-8 lg:px-8">
-        <div className="mx-auto max-w-3xl">
-          <Card className="border-none bg-white/92">
-            <CardHeader className="text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-green-700">
-                <CheckCircle2 className="h-7 w-7" />
-              </div>
-              <CardTitle className="text-3xl">Preview registration complete</CardTitle>
-              <CardDescription>
-                Your merchant details passed the scaffold flow locally. Connect the Laravel API to submit the application to the backend.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <Button asChild>
-                <Link href="/login">Go to login</Link>
-              </Button>
-              <Button variant="outline" onClick={() => setScaffoldComplete(false)}>
-                Review details
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-brand-soft px-4">
+        <p className="text-sm text-muted-foreground">Checking your account…</p>
+      </div>
+    );
+  }
+
+  if (hasMerchant) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-brand-soft px-4 py-8">
+        <Card className="w-full max-w-xl border-none bg-white/92">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">A merchant account is already signed in</CardTitle>
+            <CardDescription>
+              Sign out of your current merchant account before starting another registration.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button asChild><Link href="/dashboard">Go to merchant dashboard</Link></Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (registrationResponse) {
+    const status = registrationResponse.merchant.status;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-brand-soft px-4 py-8">
+        <Card className="w-full max-w-2xl border-none bg-white/92">
+          <CardHeader className="text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-green-700">
+              <CheckCircle2 className="h-7 w-7" />
+            </div>
+            <CardTitle className="text-3xl">Registration submitted</CardTitle>
+            <CardDescription>{registrationResponse.message}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5 text-center">
+            <p className="text-sm text-slate-700">
+              Application status: <strong className="capitalize">{status.replaceAll("_", " ")}</strong>
+              {status === "pending" ? " — your application is awaiting approval." : ""}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Account created for {registrationResponse.user.name} ({registrationResponse.user.email}).
+            </p>
+            <Button asChild><Link href="/login">Continue to sign in</Link></Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -280,9 +405,22 @@ export function MerchantRegistrationForm() {
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              <form className="space-y-6" onSubmit={handleSubmit(submitApplication)}>
+              <form className="space-y-6" onSubmit={handleSubmit(submitApplication)} aria-busy={isSubmitting}>
+                <fieldset disabled={isSubmitting} className="min-w-0 space-y-6 border-0 p-0">
                 {currentStep === 1 ? (
                   <div className="grid gap-5 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <h3 className="font-semibold text-slate-900">Account details</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">These details will be used to create your SofiaCart sign-in.</p>
+                    </div>
+                    {renderInput("name", "Account Name", { autoComplete: "name" })}
+                    {renderInput("email", "Account Email", { type: "email", autoComplete: "email" })}
+                    {renderInput("password", "Password", { type: "password", autoComplete: "new-password" })}
+                    {renderInput("passwordConfirmation", "Confirm Password", { type: "password", autoComplete: "new-password" })}
+                    {renderInput("phone", "Account Phone", { type: "tel", placeholder: "+639XXXXXXXXX or 09XXXXXXXXX" })}
+                    <div className="md:col-span-2">
+                      <h3 className="font-semibold text-slate-900">Business details</h3>
+                    </div>
                     {renderInput("businessName", "Business Name", { placeholder: "Sofia Lifestyle Ventures" })}
                     <div>
                       <Label htmlFor="businessType">Business Type</Label>
@@ -330,7 +468,7 @@ export function MerchantRegistrationForm() {
                       <Input id="storeSlug" hasError={!!errors.storeSlug} placeholder="sofia-lifestyle" {...register("storeSlug", { onChange: () => setSlugEdited(true) })} />
                       <div className="mt-2 flex items-center justify-between text-xs">
                         <span className="text-slate-500">{storeSlug ? `sofiacart.shop/${storeSlug}` : "Your store URL will appear here"}</span>
-                        <span className={slugAvailable ? "font-semibold text-green-600" : "font-semibold text-amber-600"}>{slugAvailable ? "Available" : "Needs review"}</span>
+                        <span className={slugFormatValid ? "font-semibold text-green-600" : "font-semibold text-amber-600"}>{slugFormatValid ? "Format looks good" : "Needs review"}</span>
                       </div>
                       <FieldError message={errors.storeSlug?.message} />
                     </div>
@@ -360,7 +498,7 @@ export function MerchantRegistrationForm() {
                         id="storeLogo"
                         type="file"
                         hasError={!!errors.storeLogo}
-                        accept="image/*"
+                        accept=".jpg,.jpeg,.png"
                         onChange={(event) => {
                           const file = event.target.files?.[0] ?? null;
                           setValue("storeLogo", file, { shouldValidate: true });
@@ -374,7 +512,7 @@ export function MerchantRegistrationForm() {
                       <Input
                         id="storeBanner"
                         type="file"
-                        accept="image/*"
+                        accept=".jpg,.jpeg,.png"
                         onChange={(event) => {
                           const file = event.target.files?.[0] ?? null;
                           setValue("storeBanner", file, { shouldValidate: true });
@@ -414,14 +552,14 @@ export function MerchantRegistrationForm() {
                         id="governmentIdFile"
                         type="file"
                         hasError={!!errors.governmentIdFile}
-                        accept="image/*"
+                        accept=".jpg,.jpeg,.png,.pdf"
                         onChange={(event) => {
                           const file = event.target.files?.[0] ?? null;
                           setValue("governmentIdFile", file, { shouldValidate: true });
                           updatePreview(file, idPreview, setIdPreview);
                         }}
                       />
-                      <p className="mt-2 text-xs text-slate-500">Use a clear image of the front of your valid ID.</p>
+                      <p className="mt-2 text-xs text-slate-500">Upload a clear JPG, PNG, or PDF of your valid ID.</p>
                       <FieldError message={errors.governmentIdFile?.message as string | undefined} />
                     </div>
                     <PreviewTile label="Government ID Preview" file={governmentIdFile} preview={idPreview} />
@@ -435,6 +573,9 @@ export function MerchantRegistrationForm() {
                         title: "Business Details",
                         icon: Building2,
                         entries: {
+                          "Account Name": getValues("name"),
+                          "Account Email": getValues("email"),
+                          "Account Phone": getValues("phone"),
                           "Business Name": getValues("businessName"),
                           "Business Type": getValues("businessType"),
                           "Permit Number": getValues("permitNumber"),
@@ -495,7 +636,7 @@ export function MerchantRegistrationForm() {
                 <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-between">
                   <Button type="button" variant="outline" onClick={previousStep} disabled={currentStep === 1 || isSubmitting}>Previous</Button>
                   {currentStep < 4 ? (
-                    <Button type="button" onClick={nextStep}>Next Step</Button>
+                    <Button type="button" onClick={nextStep} disabled={isSubmitting}>Next Step</Button>
                   ) : (
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -503,6 +644,7 @@ export function MerchantRegistrationForm() {
                     </Button>
                   )}
                 </div>
+                </fieldset>
               </form>
             </CardContent>
           </Card>
