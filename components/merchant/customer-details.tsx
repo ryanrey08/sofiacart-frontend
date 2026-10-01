@@ -115,8 +115,8 @@ export function CustomerDetailsPanel({
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const query = useCustomer(customerId);
-  // Real order history for customers whose resource carries no aggregates yet.
-  const orders = useCustomerOrders(customerId);
+  // Real order history, only requested when the customer resource carries no order aggregates.
+  const orders = useCustomerOrders(customerId, 5, query.data?.recent_orders == null || query.data.orders_count == null);
 
   if (query.isPending) return <DetailsSkeleton />;
   if (query.isError) {
@@ -257,19 +257,22 @@ export function CustomerDetailsPanel({
                   <p className="text-sm text-muted-foreground">This customer has no orders yet.</p>
                 ) : null}
                 <ul className="space-y-2">
-                  {recentOrders.map((order) => (
-                    <li key={order.id} className="rounded-xl border border-slate-100 p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <Link href={`/sales/orders/${order.id}`} className="text-sm font-semibold text-brand-700 hover:underline">
-                          {order.order_number}
-                        </Link>
-                        <span className="text-sm font-semibold text-navy-900">{formatMoney(order.total_amount)}</span>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {order.ordered_at ? formatDateTime(order.ordered_at) : "Not yet placed"} · {humanize(order.status)}
-                      </p>
-                    </li>
-                  ))}
+                  {recentOrders.map((order) => {
+                    const orderTotal = toAmount(order.total_amount);
+                    return (
+                      <li key={order.id} className="rounded-xl border border-slate-100 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <Link href={`/sales/orders/${order.id}`} className="text-sm font-semibold text-brand-700 hover:underline">
+                            {order.order_number}
+                          </Link>
+                          <span className="text-sm font-semibold text-navy-900">{orderTotal === null ? "—" : formatMoney(orderTotal)}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {order.ordered_at ? formatDateTime(order.ordered_at) : "Not yet placed"} · {humanize(order.status)}
+                        </p>
+                      </li>
+                    );
+                  })}
                 </ul>
                 {ordersCount !== null && ordersCount > recentOrders.length ? (
                   <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">

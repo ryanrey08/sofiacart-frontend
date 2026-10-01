@@ -65,9 +65,10 @@ export interface CustomerListParams {
 
 // `GET /api/v1/customers?search=&customer_type=&status=&date_from=&date_to=&page=&per_page=`
 export function buildCustomerListParams(filters: CustomerListFilters): CustomerListParams {
+  const page = Number(filters.page ?? 1);
   const perPage = Number(filters.perPage);
   const params: CustomerListParams = {
-    page: Math.max(1, filters.page ?? 1),
+    page: Number.isInteger(page) && page > 0 ? page : 1,
     per_page: Number.isInteger(perPage) && perPage > 0 ? perPage : CUSTOMER_PER_PAGE_OPTIONS[0],
   };
   const search = filters.search?.trim();

@@ -41,14 +41,14 @@ export function useCustomer(id: number | null) {
  * Real order history for one customer from `GET /api/v1/orders?customer_id=`. It is used when the
  * customer resource itself carries no `recent_orders`/`orders_count`, so nothing is ever fabricated.
  */
-export function useCustomerOrders(id: number | null, perPage = 5) {
+export function useCustomerOrders(id: number | null, perPage = 5, enabled = true) {
   return useQuery({
     queryKey: ["merchant", "orders", "by-customer", id, perPage],
     queryFn: async () =>
       merchantPage(
         (await api.get<Paginated<MerchantOrder>>("/api/v1/orders", { params: { customer_id: id, page: 1, per_page: perPage } })).data,
       ),
-    enabled: id !== null,
+    enabled: id !== null && enabled,
     staleTime: 0,
   });
 }
