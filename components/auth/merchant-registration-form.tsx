@@ -1,12 +1,12 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
-import { Building2, CheckCircle2, Loader2, ShieldCheck, Store, UserCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, CheckCircle2, ClipboardCheck, FileCheck2, FileText, ImageIcon, Loader2, Store, UploadCloud, UserCircle2 } from "lucide-react";
 import { isAxiosError } from "axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import { StepperNav, type StepItem } from "@/components/stepper-nav";
 import api from "@/lib/api/axios";
 import { getStoredAuth } from "@/lib/auth";
 import { buildMerchantRegistrationFormData } from "@/lib/merchant-registration";
-import { slugify } from "@/lib/utils";
+import { cn, slugify } from "@/lib/utils";
 import {
   merchantRegistrationSchema,
   type MerchantRegistrationSchema,
@@ -140,24 +140,95 @@ const options = {
   idTypes: ["Passport", "Driver's License", "UMID", "PhilSys ID", "Postal ID"],
 };
 
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return <p className="mt-2 text-sm text-red-600">{message}</p>;
+const selectClass = "h-10 w-full rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200";
+
+function errorId(name: string) {
+  return `${name}-error`;
 }
 
-function PreviewTile({ label, file, preview }: { label: string; file: File | null; preview: string | null }) {
+function FieldError({ name, message }: { name: string; message?: string }) {
+  if (!message) return null;
+  return <p id={errorId(name)} className="mt-1.5 text-xs font-medium text-red-600">{message}</p>;
+}
+
+function SectionHeading({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-slate-50 p-3 text-sm text-muted-foreground">
-      <p className="font-medium text-slate-700">{label}</p>
-      {preview ? (
-        <div className="relative mt-3 h-28 w-full overflow-hidden rounded-xl">
-          <Image src={preview} alt={label} fill unoptimized className="object-cover" />
-        </div>
-      ) : (
-        <p className="mt-2">Upload an image file to preview it here.</p>
-      )}
-      {file ? <p className="mt-2 truncate text-xs text-slate-500">{file.name}</p> : null}
+    <div className="md:col-span-2">
+      <h3 className="text-sm font-bold uppercase tracking-[0.14em] text-brand-700">{title}</h3>
+      {description ? <p className="mt-0.5 text-sm text-muted-foreground">{description}</p> : null}
     </div>
+  );
+}
+
+function FileUploadField({
+  id,
+  label,
+  accept,
+  hint,
+  error,
+  file,
+  onFileChange,
+}: {
+  id: string;
+  label: string;
+  accept: string;
+  hint: string;
+  error?: string;
+  file: File | null;
+  onFileChange: (file: File | null) => void;
+}) {
+  const hintId = `${id}-hint`;
+  return (
+    <div>
+      <p id={`${id}-label`} className="mb-1.5 block text-[13px] font-semibold text-slate-700">{label}</p>
+      <input
+        id={id}
+        type="file"
+        accept={accept}
+        className="peer sr-only"
+        aria-labelledby={`${id}-label ${id}-action`}
+        aria-describedby={error ? `${hintId} ${errorId(id)}` : hintId}
+        aria-invalid={error ? true : undefined}
+        onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+      />
+      <label
+        htmlFor={id}
+        className={cn(
+          "flex cursor-pointer items-center gap-3 rounded-xl border border-dashed bg-[#faf9fe] px-3 py-3 transition hover:border-brand-400 hover:bg-brand-50 peer-focus-visible:border-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-200",
+          error ? "border-red-400" : "border-brand-200",
+        )}
+      >
+        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">
+          {file ? <FileCheck2 className="h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span id={`${id}-action`} className="block truncate text-sm font-semibold text-navy-900">{file ? file.name : "Click to upload a file"}</span>
+          <span id={hintId} className="block text-xs text-slate-500">{hint}</span>
+        </span>
+        <span aria-hidden="true" className="hidden rounded-lg border border-brand-200 bg-white px-2.5 py-1 text-xs font-semibold text-brand-700 sm:inline">{file ? "Replace" : "Browse"}</span>
+      </label>
+      <FieldError name={id} message={error} />
+    </div>
+  );
+}
+
+function PreviewTile({ label, file, preview, shape = "wide" }: { label: string; file: File | null; preview: string | null; shape?: "square" | "wide" }) {
+  return (
+    <figure className="rounded-xl border border-slate-200 bg-white p-3">
+      <figcaption className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-600">
+        <span>{label}</span>
+        {file ? <span className="truncate font-normal text-slate-400">{file.name}</span> : null}
+      </figcaption>
+      <div className={cn("relative mt-2 flex items-center justify-center overflow-hidden rounded-lg bg-[#f4f2fb] text-slate-400", shape === "square" ? "mx-auto aspect-square w-28" : "h-28 w-full")}>
+        {preview ? (
+          <Image src={preview} alt={`${label} of the selected file`} fill unoptimized className="object-cover" />
+        ) : file ? (
+          <span className="flex flex-col items-center gap-1 px-2 text-center text-xs"><FileText aria-hidden="true" className="h-6 w-6" />Preview not available for this file type</span>
+        ) : (
+          <span className="flex flex-col items-center gap-1 px-2 text-center text-xs"><ImageIcon aria-hidden="true" className="h-6 w-6" />No image selected yet</span>
+        )}
+      </div>
+    </figure>
   );
 }
 
@@ -236,8 +307,16 @@ export function MerchantRegistrationForm() {
     setPreview(URL.createObjectURL(file));
   };
 
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const previousRenderedStep = useRef(currentStep);
+  useEffect(() => {
+    if (previousRenderedStep.current === currentStep) return;
+    previousRenderedStep.current = currentStep;
+    stepHeadingRef.current?.focus();
+  }, [currentStep]);
+
   const nextStep = async () => {
-    const isValid = await trigger(fieldGroups[currentStep]);
+    const isValid = await trigger(fieldGroups[currentStep], { shouldFocus: true });
     if (isValid) {
       setCurrentStep((step) => Math.min(4, step + 1));
     }
@@ -309,26 +388,43 @@ export function MerchantRegistrationForm() {
   const renderInput = (name: keyof MerchantRegistrationSchema, label: string, props?: Partial<ComponentProps<typeof Input>>) => (
     <div>
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} hasError={!!errors[name]} {...register(name)} {...props} />
-      <FieldError message={errors[name]?.message as string | undefined} />
+      <Input id={name} hasError={!!errors[name]} aria-describedby={errors[name] ? errorId(name) : undefined} {...register(name)} {...props} />
+      <FieldError name={name} message={errors[name]?.message as string | undefined} />
+    </div>
+  );
+
+  const renderSelect = (name: "businessType" | "businessCategory" | "province" | "storeCategory" | "governmentIdType", label: string, placeholder: string, values: string[]) => (
+    <div>
+      <Label htmlFor={name}>{label}</Label>
+      <select
+        id={name}
+        aria-invalid={errors[name] ? true : undefined}
+        aria-describedby={errors[name] ? errorId(name) : undefined}
+        className={cn(selectClass, errors[name] ? "border-red-400" : "border-slate-200")}
+        {...register(name)}
+      >
+        <option value="">{placeholder}</option>
+        {values.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+      <FieldError name={name} message={errors[name]?.message} />
     </div>
   );
 
   if (merchantAuth === undefined) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-brand-soft px-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Merchant registration</h1>
-        <p className="text-sm text-muted-foreground">Checking your account…</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-[#f6f5fb] px-4">
+        <h1 className="text-2xl font-semibold text-navy-900">Merchant registration</h1>
+        <p role="status" className="text-sm text-muted-foreground">Checking your account…</p>
       </div>
     );
   }
 
   if (hasMerchant) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-soft px-4 py-8">
-        <Card className="w-full max-w-xl border-none bg-white/92">
+      <div className="flex min-h-screen items-center justify-center bg-[#f6f5fb] px-4 py-8">
+        <Card className="w-full max-w-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">A merchant account is already signed in</CardTitle>
+            <CardTitle className="text-2xl text-navy-900">A merchant account is already signed in</CardTitle>
             <CardDescription>
               Sign out of your current merchant account before starting another registration.
             </CardDescription>
@@ -344,13 +440,13 @@ export function MerchantRegistrationForm() {
   if (registrationResponse) {
     const status = registrationResponse.merchant.status;
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-soft px-4 py-8">
-        <Card className="w-full max-w-2xl border-none bg-white/92">
+      <div className="flex min-h-screen items-center justify-center bg-[#f6f5fb] px-4 py-8">
+        <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-green-700">
-              <CheckCircle2 className="h-7 w-7" />
+              <CheckCircle2 aria-hidden="true" className="h-7 w-7" />
             </div>
-            <CardTitle className="text-3xl">Registration submitted</CardTitle>
+            <CardTitle className="text-3xl text-navy-900">Registration submitted</CardTitle>
             <CardDescription>{registrationResponse.message}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5 text-center">
@@ -368,209 +464,200 @@ export function MerchantRegistrationForm() {
     );
   }
 
+  const activeStep = steps[currentStep - 1];
+  const StepIcon = currentStep === 1 ? Building2 : currentStep === 2 ? Store : currentStep === 3 ? UserCircle2 : ClipboardCheck;
+  const progressPercent = Math.round((currentStep / steps.length) * 100);
+
   return (
-    <div className="min-h-screen bg-brand-soft px-4 py-8 lg:px-8">
-      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="rounded-[32px] bg-brand-gradient p-6 text-white shadow-soft">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold">SC</div>
-            <div>
-              <p className="text-lg font-semibold">SofiaCart</p>
-              <p className="text-sm text-white/80">Merchant registration</p>
+    <div className="min-h-screen bg-[#f6f5fb] lg:flex">
+      <aside className="bg-brand-rail text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[300px] lg:shrink-0 lg:flex-col lg:overflow-y-auto xl:w-[340px]">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 lg:px-6 lg:pt-8">
+          <Link href="/" className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunset-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sunset-500 to-brand-500 text-base font-bold shadow-lg shadow-black/20">SC</span>
+            <span>
+              <span className="block text-lg font-bold leading-tight">SofiaCart</span>
+              <span className="block text-xs text-white/60">Merchant onboarding</span>
+            </span>
+          </Link>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold lg:hidden">Step {currentStep} of {steps.length}</span>
+        </div>
+        <div className="hidden px-6 lg:block">
+          <h2 className="mt-6 text-2xl font-bold leading-snug">Start selling on SofiaCart</h2>
+          <p className="mt-2 text-sm text-white/70">Complete four quick steps to submit your store for review.</p>
+          <StepperNav steps={steps} currentStep={currentStep} variant="rail" className="mt-8" />
+        </div>
+        <div className="mt-auto hidden px-6 pb-8 pt-8 lg:block">
+          <ul className="space-y-2.5 rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-sm text-white/80">
+            <li className="flex gap-2"><CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-sunset-300" />Catalog, orders and reporting tools in one place.</li>
+            <li className="flex gap-2"><CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-sunset-300" />Flexible storefront branding.</li>
+            <li className="flex gap-2"><CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-sunset-300" />Guided onboarding with document verification.</li>
+          </ul>
+          <p className="mt-4 text-sm text-white/70">
+            Already registered? <Link href="/login" className="font-semibold text-white underline-offset-4 hover:underline">Sign in</Link>
+          </p>
+        </div>
+      </aside>
+
+      <main className="min-w-0 flex-1 px-3 py-5 sm:px-6 lg:px-10 lg:py-8">
+        <div className="mx-auto max-w-5xl space-y-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-600">Merchant registration</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy-900 sm:text-[28px]">Create your merchant account</h1>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/70 bg-white px-4 py-4 shadow-card sm:px-6">
+            <StepperNav steps={steps} currentStep={currentStep} className="hidden md:flex" />
+            <div className="md:hidden">
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="text-navy-900">Step {currentStep} of {steps.length}: {activeStep?.title}</span>
+                <span className="text-brand-700">{progressPercent}%</span>
+              </div>
+              <div role="progressbar" aria-label="Registration progress" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={currentStep} aria-valuetext={`Step ${currentStep} of ${steps.length}: ${activeStep?.title}`} className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-sunset-500 transition-all" style={{ width: `${progressPercent}%` }} />
+              </div>
             </div>
           </div>
-          <div className="mt-8">
-            <StepperNav steps={steps} currentStep={currentStep} orientation="vertical" />
-          </div>
-          <Card className="mt-8 border border-white/15 bg-white/10 text-white shadow-none">
-            <CardContent className="p-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/80">Why SofiaCart?</p>
-              <ul className="mt-4 space-y-3 text-sm text-white/85">
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />Multi-merchant tools for catalog, orders, and reporting.</li>
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />Flexible storefront branding with modern analytics.</li>
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />Guided onboarding with document verification.</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </aside>
 
-        <section className="space-y-6">
-          <Card className="border-none bg-white/80">
-            <CardContent className="p-5">
-              <StepperNav steps={steps} currentStep={currentStep} />
-            </CardContent>
-          </Card>
-
-          <Card className="border-none bg-white/92">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
-                  {currentStep === 1 ? <Building2 className="h-6 w-6" /> : currentStep === 2 ? <Store className="h-6 w-6" /> : currentStep === 3 ? <ShieldCheck className="h-6 w-6" /> : <UserCircle2 className="h-6 w-6" />}
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">{steps[currentStep - 1]?.title}</CardTitle>
-                  <CardDescription className="mt-1">{steps[currentStep - 1]?.description}</CardDescription>
-                </div>
+          <section aria-labelledby="registration-step-title" className="rounded-3xl border border-slate-200/70 bg-white shadow-card">
+            <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-4 sm:px-6">
+              <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+                <StepIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 id="registration-step-title" ref={stepHeadingRef} tabIndex={-1} className="text-lg font-bold text-navy-900 focus:outline-none">{activeStep?.title}</h2>
+                <p className="text-sm text-muted-foreground">{activeStep?.description}</p>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <form className="space-y-6" onSubmit={handleSubmit(submitApplication)} aria-busy={isSubmitting}>
-                <fieldset disabled={isSubmitting} className="min-w-0 space-y-6 border-0 p-0">
+            </div>
+            <div className="px-4 py-5 sm:px-6">
+              <form className="space-y-5" onSubmit={handleSubmit(submitApplication)} aria-busy={isSubmitting} noValidate>
+                <fieldset disabled={isSubmitting} className="min-w-0 space-y-5 border-0 p-0">
                 {currentStep === 1 ? (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div className="md:col-span-2">
-                      <h3 className="font-semibold text-slate-900">Account details</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">These details will be used to create your SofiaCart sign-in.</p>
-                    </div>
+                  <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
+                    <SectionHeading title="Account details" description="These details will be used to create your SofiaCart sign-in." />
                     {renderInput("name", "Account Name", { autoComplete: "name" })}
                     {renderInput("email", "Account Email", { type: "email", autoComplete: "email" })}
                     {renderInput("password", "Password", { type: "password", autoComplete: "new-password" })}
                     {renderInput("passwordConfirmation", "Confirm Password", { type: "password", autoComplete: "new-password" })}
-                    {renderInput("phone", "Account Phone", { type: "tel", placeholder: "+639XXXXXXXXX or 09XXXXXXXXX" })}
-                    <div className="md:col-span-2">
-                      <h3 className="font-semibold text-slate-900">Business details</h3>
-                    </div>
-                    {renderInput("businessName", "Business Name", { placeholder: "Sofia Lifestyle Ventures" })}
-                    <div>
-                      <Label htmlFor="businessType">Business Type</Label>
-                      <select id="businessType" className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-brand-400" {...register("businessType")}>
-                        <option value="">Select business type</option>
-                        {options.businessTypes.map((option) => <option key={option} value={option}>{option}</option>)}
-                      </select>
-                      <FieldError message={errors.businessType?.message} />
-                    </div>
+                    {renderInput("phone", "Account Phone", { type: "tel", autoComplete: "tel", placeholder: "+639XXXXXXXXX or 09XXXXXXXXX" })}
+                    <SectionHeading title="Business details" />
+                    {renderInput("businessName", "Business Name", { placeholder: "Registered business name" })}
+                    {renderSelect("businessType", "Business Type", "Select business type", options.businessTypes)}
                     {renderInput("permitNumber", "DTI/SEC/Business Permit No.")}
                     {renderInput("tin", "TIN")}
-                    <div>
-                      <Label htmlFor="businessCategory">Business Category</Label>
-                      <select id="businessCategory" className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-brand-400" {...register("businessCategory")}>
-                        <option value="">Select category</option>
-                        {options.categories.map((option) => <option key={option} value={option}>{option}</option>)}
-                      </select>
-                      <FieldError message={errors.businessCategory?.message} />
-                    </div>
-                    <div>
-                      <Label htmlFor="businessPermit">Business Permit</Label>
-                      <Input id="businessPermit" type="file" hasError={!!errors.businessPermit} accept=".png,.jpg,.jpeg,.pdf" onChange={(event) => setValue("businessPermit", event.target.files?.[0] ?? null, { shouldValidate: true })} />
-                      <FieldError message={errors.businessPermit?.message as string | undefined} />
-                      {businessPermit ? <p className="mt-2 text-xs text-slate-500">{businessPermit.name}</p> : null}
-                    </div>
-                    <div className="md:col-span-2">{renderInput("businessAddress", "Business Address", { placeholder: "123 Sofia Street, Barangay Central" })}</div>
+                    {renderSelect("businessCategory", "Business Category", "Select category", options.categories)}
+                    <FileUploadField
+                      id="businessPermit"
+                      label="Business Permit"
+                      accept=".png,.jpg,.jpeg,.pdf"
+                      hint="JPG, PNG or PDF"
+                      file={businessPermit}
+                      error={errors.businessPermit?.message as string | undefined}
+                      onFileChange={(file) => setValue("businessPermit", file, { shouldValidate: true })}
+                    />
+                    <div className="md:col-span-2">{renderInput("businessAddress", "Business Address", { placeholder: "Street, barangay", autoComplete: "street-address" })}</div>
                     {renderInput("city", "City / Municipality")}
-                    <div>
-                      <Label htmlFor="province">Province</Label>
-                      <select id="province" className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-brand-400" {...register("province")}>
-                        <option value="">Select province</option>
-                        {options.provinces.map((option) => <option key={option} value={option}>{option}</option>)}
-                      </select>
-                      <FieldError message={errors.province?.message} />
-                    </div>
-                    {renderInput("zipCode", "ZIP Code")}
+                    {renderSelect("province", "Province", "Select province", options.provinces)}
+                    {renderInput("zipCode", "ZIP Code", { autoComplete: "postal-code" })}
                   </div>
                 ) : null}
 
                 {currentStep === 2 ? (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    {renderInput("storeName", "Store Name", { placeholder: "Sofia Lifestyle Store" })}
+                  <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
+                    <SectionHeading title="Store profile" />
+                    {renderInput("storeName", "Store Name", { placeholder: "Your store name" })}
                     <div>
                       <Label htmlFor="storeSlug">Store URL / Slug</Label>
-                      <Input id="storeSlug" hasError={!!errors.storeSlug} placeholder="sofia-lifestyle" {...register("storeSlug", { onChange: () => setSlugEdited(true) })} />
-                      <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="text-slate-500">{storeSlug ? `sofiacart.shop/${storeSlug}` : "Your store URL will appear here"}</span>
-                        <span className={slugFormatValid ? "font-semibold text-green-600" : "font-semibold text-amber-600"}>{slugFormatValid ? "Format looks good" : "Needs review"}</span>
+                      <div className={cn("flex h-10 items-stretch overflow-hidden rounded-xl border bg-white focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-200", errors.storeSlug ? "border-red-400" : "border-slate-200")}>
+                        <span aria-hidden="true" className="flex items-center border-r border-slate-200 bg-[#f6f5fb] px-3 text-xs text-slate-500">sofiacart.shop/</span>
+                        <input
+                          id="storeSlug"
+                          aria-invalid={errors.storeSlug ? true : undefined}
+                          aria-describedby={errors.storeSlug ? `storeSlug-status ${errorId("storeSlug")}` : "storeSlug-status"}
+                          className="min-w-0 flex-1 px-3 text-sm outline-none placeholder:text-slate-400"
+                          placeholder="your-store"
+                          {...register("storeSlug", { onChange: () => setSlugEdited(true) })}
+                        />
                       </div>
-                      <FieldError message={errors.storeSlug?.message} />
+                      <div id="storeSlug-status" className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+                        <span className="truncate text-slate-500">{storeSlug ? `sofiacart.shop/${storeSlug}` : "Your store URL will appear here"}</span>
+                        <span className={slugFormatValid ? "shrink-0 font-semibold text-green-600" : "shrink-0 font-semibold text-amber-600"}>{slugFormatValid ? "Format looks good" : "Needs review"}</span>
+                      </div>
+                      <FieldError name="storeSlug" message={errors.storeSlug?.message} />
                     </div>
-                    <div>
-                      <Label htmlFor="storeCategory">Store Category</Label>
-                      <select id="storeCategory" className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-brand-400" {...register("storeCategory")}>
-                        <option value="">Select store category</option>
-                        {options.categories.map((option) => <option key={option} value={option}>{option}</option>)}
-                      </select>
-                      <FieldError message={errors.storeCategory?.message} />
-                    </div>
+                    {renderSelect("storeCategory", "Store Category", "Select store category", options.categories)}
+                    {renderInput("storeEmail", "Email Address", { type: "email", autoComplete: "email" })}
                     <div className="md:col-span-2">
                       <Label htmlFor="storeDescription">Store Description</Label>
-                      <Textarea id="storeDescription" hasError={!!errors.storeDescription} maxLength={240} placeholder="Tell customers what makes your store unique." {...register("storeDescription")} />
-                      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                      <Textarea id="storeDescription" hasError={!!errors.storeDescription} aria-describedby={errors.storeDescription ? `storeDescription-hint ${errorId("storeDescription")}` : "storeDescription-hint"} maxLength={240} placeholder="Tell customers what makes your store unique." {...register("storeDescription")} />
+                      <div id="storeDescription-hint" className="mt-1.5 flex items-center justify-between gap-2 text-xs text-slate-500">
                         <span>Recommended: highlight your products, service area, and fulfillment promise.</span>
-                        <span>{storeDescription.length}/240</span>
+                        <span className="shrink-0">{storeDescription.length}/240</span>
                       </div>
-                      <FieldError message={errors.storeDescription?.message} />
+                      <FieldError name="storeDescription" message={errors.storeDescription?.message} />
                     </div>
-                    {renderInput("storeContactNumber", "Contact Number")}
-                    {renderInput("storeEmail", "Email Address", { type: "email" })}
-                    <div className="md:col-span-2">{renderInput("storeAddress", "Store Address")}</div>
-                    <div>
-                      <Label htmlFor="storeLogo">Store Logo</Label>
-                      <Input
-                        id="storeLogo"
-                        type="file"
-                        hasError={!!errors.storeLogo}
-                        accept=".jpg,.jpeg,.png"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0] ?? null;
-                          setValue("storeLogo", file, { shouldValidate: true });
-                          updatePreview(file, logoPreview, setLogoPreview);
-                        }}
-                      />
-                      <FieldError message={errors.storeLogo?.message as string | undefined} />
-                    </div>
-                    <div>
-                      <Label htmlFor="storeBanner">Store Banner (Optional)</Label>
-                      <Input
-                        id="storeBanner"
-                        type="file"
-                        accept=".jpg,.jpeg,.png"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0] ?? null;
-                          setValue("storeBanner", file, { shouldValidate: true });
-                          updatePreview(file, bannerPreview, setBannerPreview);
-                        }}
-                      />
-                    </div>
-                    <PreviewTile label="Logo Preview" file={logoFile} preview={logoPreview} />
+                    {renderInput("storeContactNumber", "Contact Number", { type: "tel" })}
+                    {renderInput("storeAddress", "Store Address")}
+
+                    <SectionHeading title="Branding" description="Upload JPG or PNG images. Previews are only shown on this device until you submit." />
+                    <FileUploadField
+                      id="storeLogo"
+                      label="Store Logo"
+                      accept=".jpg,.jpeg,.png"
+                      hint="Square JPG or PNG"
+                      file={logoFile}
+                      error={errors.storeLogo?.message as string | undefined}
+                      onFileChange={(file) => {
+                        setValue("storeLogo", file, { shouldValidate: true });
+                        updatePreview(file, logoPreview, setLogoPreview);
+                      }}
+                    />
+                    <FileUploadField
+                      id="storeBanner"
+                      label="Store Banner (Optional)"
+                      accept=".jpg,.jpeg,.png"
+                      hint="Wide JPG or PNG"
+                      file={bannerFile}
+                      error={errors.storeBanner?.message as string | undefined}
+                      onFileChange={(file) => {
+                        setValue("storeBanner", file, { shouldValidate: true });
+                        updatePreview(file, bannerPreview, setBannerPreview);
+                      }}
+                    />
+                    <PreviewTile label="Logo Preview" file={logoFile} preview={logoPreview} shape="square" />
                     <PreviewTile label="Banner Preview" file={bannerFile} preview={bannerPreview} />
-                    {renderInput("facebook", "Facebook (Optional)", { placeholder: "https://facebook.com/yourstore" })}
-                    {renderInput("instagram", "Instagram (Optional)", { placeholder: "https://instagram.com/yourstore" })}
-                    {renderInput("tiktok", "TikTok (Optional)", { placeholder: "https://tiktok.com/@yourstore" })}
-                    {renderInput("website", "Website (Optional)", { placeholder: "https://yourstore.com" })}
+
+                    <SectionHeading title="Social links" description="Optional — add the channels where customers already find you." />
+                    {renderInput("facebook", "Facebook (Optional)", { type: "url", placeholder: "https://facebook.com/yourstore" })}
+                    {renderInput("instagram", "Instagram (Optional)", { type: "url", placeholder: "https://instagram.com/yourstore" })}
+                    {renderInput("tiktok", "TikTok (Optional)", { type: "url", placeholder: "https://tiktok.com/@yourstore" })}
+                    {renderInput("website", "Website (Optional)", { type: "url", placeholder: "https://yourstore.com" })}
                   </div>
                 ) : null}
 
                 {currentStep === 3 ? (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    {renderInput("ownerFullName", "Full Name")}
-                    {renderInput("ownerPosition", "Position / Designation")}
-                    {renderInput("ownerEmail", "Email Address", { type: "email" })}
-                    {renderInput("ownerContactNumber", "Contact Number")}
-                    {renderInput("dateOfBirth", "Date of Birth", { type: "date" })}
-                    <div>
-                      <Label htmlFor="governmentIdType">Government ID Type</Label>
-                      <select id="governmentIdType" className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-brand-400" {...register("governmentIdType")}>
-                        <option value="">Select ID type</option>
-                        {options.idTypes.map((option) => <option key={option} value={option}>{option}</option>)}
-                      </select>
-                      <FieldError message={errors.governmentIdType?.message} />
-                    </div>
+                  <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
+                    <SectionHeading title="Owner details" description="The authorized person responsible for this merchant account." />
+                    {renderInput("ownerFullName", "Full Name", { autoComplete: "name" })}
+                    {renderInput("ownerPosition", "Position / Designation", { autoComplete: "organization-title" })}
+                    {renderInput("ownerEmail", "Email Address", { type: "email", autoComplete: "email" })}
+                    {renderInput("ownerContactNumber", "Contact Number", { type: "tel", autoComplete: "tel" })}
+                    {renderInput("dateOfBirth", "Date of Birth", { type: "date", autoComplete: "bday" })}
+                    <SectionHeading title="Identity verification" />
+                    {renderSelect("governmentIdType", "Government ID Type", "Select ID type", options.idTypes)}
                     {renderInput("governmentIdNumber", "Government ID Number")}
                     {renderInput("governmentIdExpiry", "Date of Expiry", { type: "date" })}
-                    <div>
-                      <Label htmlFor="governmentIdFile">Upload Government ID</Label>
-                      <Input
-                        id="governmentIdFile"
-                        type="file"
-                        hasError={!!errors.governmentIdFile}
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0] ?? null;
-                          setValue("governmentIdFile", file, { shouldValidate: true });
-                          updatePreview(file, idPreview, setIdPreview);
-                        }}
-                      />
-                      <p className="mt-2 text-xs text-slate-500">Upload a clear JPG, PNG, or PDF of your valid ID.</p>
-                      <FieldError message={errors.governmentIdFile?.message as string | undefined} />
-                    </div>
+                    <FileUploadField
+                      id="governmentIdFile"
+                      label="Upload Government ID"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      hint="Clear JPG, PNG or PDF of your valid ID"
+                      file={governmentIdFile}
+                      error={errors.governmentIdFile?.message as string | undefined}
+                      onFileChange={(file) => {
+                        setValue("governmentIdFile", file, { shouldValidate: true });
+                        updatePreview(file, idPreview, setIdPreview);
+                      }}
+                    />
                     <PreviewTile label="Government ID Preview" file={governmentIdFile} preview={idPreview} />
                   </div>
                 ) : null}
@@ -580,6 +667,7 @@ export function MerchantRegistrationForm() {
                     {[
                       {
                         title: "Business Details",
+                        step: 1,
                         icon: Building2,
                         entries: {
                           "Account Name": getValues("name"),
@@ -595,6 +683,7 @@ export function MerchantRegistrationForm() {
                       },
                       {
                         title: "Store Information",
+                        step: 2,
                         icon: Store,
                         entries: {
                           "Store Name": getValues("storeName"),
@@ -607,6 +696,7 @@ export function MerchantRegistrationForm() {
                       },
                       {
                         title: "Owner Information",
+                        step: 3,
                         icon: UserCircle2,
                         entries: {
                           Name: getValues("ownerFullName"),
@@ -620,45 +710,54 @@ export function MerchantRegistrationForm() {
                     ].map((section) => {
                       const Icon = section.icon;
                       return (
-                        <Card key={section.title} className="border border-slate-100 bg-slate-50 shadow-none">
-                          <CardHeader>
-                            <div className="flex items-center gap-3">
-                              <div className="rounded-2xl bg-white p-3 text-brand-700"><Icon className="h-5 w-5" /></div>
-                              <CardTitle className="text-lg">{section.title}</CardTitle>
+                        <div key={section.title} className="rounded-2xl border border-slate-200/80 bg-[#faf9fe] p-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span aria-hidden="true" className="rounded-lg bg-white p-2 text-brand-700 shadow-sm"><Icon className="h-4 w-4" /></span>
+                              <h3 className="text-sm font-bold text-navy-900">{section.title}</h3>
                             </div>
-                          </CardHeader>
-                          <CardContent className="space-y-3 pt-0">
+                            <button type="button" onClick={() => setCurrentStep(section.step)} className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Edit ${section.title}`}>
+                              Edit
+                            </button>
+                          </div>
+                          <dl className="mt-3 space-y-2.5">
                             {Object.entries(section.entries).map(([label, value]) => (
                               <div key={label}>
-                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
-                                <p className="mt-1 text-sm text-slate-700">{String(value) || "—"}</p>
+                                <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</dt>
+                                <dd className="mt-0.5 break-words text-sm text-slate-700">{String(value) || "—"}</dd>
                               </div>
                             ))}
-                          </CardContent>
-                        </Card>
+                          </dl>
+                        </div>
                       );
                     })}
                   </div>
                 ) : null}
 
-                {submitError ? <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{submitError}</div> : null}
-                <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-between">
-                  <Button type="button" variant="outline" onClick={previousStep} disabled={currentStep === 1 || isSubmitting}>Previous</Button>
+                {submitError ? <div role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{submitError}</div> : null}
+                <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-between">
+                  <Button type="button" variant="outline" onClick={previousStep} disabled={currentStep === 1 || isSubmitting}>
+                    <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+                    Previous
+                  </Button>
                   {currentStep < 4 ? (
-                    <Button type="button" onClick={nextStep} disabled={isSubmitting}>Next Step</Button>
+                    <Button type="button" onClick={nextStep} disabled={isSubmitting} className="sm:min-w-40">
+                      Next Step
+                      <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                    </Button>
                   ) : (
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    <Button type="submit" variant="accent" disabled={isSubmitting} className="sm:min-w-56">
+                      {isSubmitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
                       {isSubmitting ? "Submitting..." : "Submit Merchant Registration"}
                     </Button>
                   )}
                 </div>
                 </fieldset>
               </form>
-            </CardContent>
-          </Card>
-        </section>
-      </div>
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }

@@ -13,6 +13,7 @@ export default function SalesReportPage() {
       title="Sales Reports"
       description="Monitor revenue trends, average order value, and refund rate at a glance."
       report={report}
+      isSample={report === mockReports.sales}
       columns={[
         { key: "order", header: "Order" },
         { key: "customer", header: "Customer" },

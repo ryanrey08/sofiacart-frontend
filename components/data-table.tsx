@@ -21,11 +21,13 @@ export function DataTable<T extends object>({
   columns,
   pageSize = 5,
   getRowKey,
+  className,
 }: {
   data: T[];
   columns: DataTableColumn<T>[];
   pageSize?: number;
   getRowKey?: (row: T, index: number) => string | number;
+  className?: string;
 }) {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -77,20 +79,24 @@ export function DataTable<T extends object>({
   };
 
   return (
-    <Card className="border-none bg-white/90">
+    <Card className={className}>
       <CardContent className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100 text-sm">
-            <thead className="bg-slate-50/90">
+            <thead className="bg-[#f8f7fd]">
               <tr>
                 {columns.map((column) => (
-                  <th key={String(column.key)} className={cn("px-4 py-3 text-left font-semibold text-slate-600", column.className)}>
-                    <button type="button" onClick={() => handleSort(column)} className="inline-flex items-center gap-1">
-                      {column.header}
-                      {column.sortable ? (
-                        sortKey === String(column.key) ? sortDirection === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" /> : <ChevronsUpDown className="h-3.5 w-3.5 text-slate-400" />
-                      ) : null}
-                    </button>
+                  <th
+                    key={String(column.key)}
+                    scope="col"
+                    aria-sort={column.sortable && sortKey === String(column.key) ? (sortDirection === "asc" ? "ascending" : "descending") : undefined}
+                    className={cn("px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500", column.className)}>
+                    {column.sortable ? (
+                      <button type="button" onClick={() => handleSort(column)} className="inline-flex items-center gap-1 rounded uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                        {column.header}
+                        {sortKey === String(column.key) ? sortDirection === "asc" ? <ArrowUp aria-hidden="true" className="h-3.5 w-3.5" /> : <ArrowDown aria-hidden="true" className="h-3.5 w-3.5" /> : <ChevronsUpDown aria-hidden="true" className="h-3.5 w-3.5 text-slate-400" />}
+                      </button>
+                    ) : column.header}
                   </th>
                 ))}
               </tr>
@@ -106,7 +112,7 @@ export function DataTable<T extends object>({
                     (row as Record<string, string | number>).reference ??
                     index
                   }
-                  className="hover:bg-slate-50/70"
+                  className="hover:bg-brand-50/40"
                 >
                   {columns.map((column) => (
                     <td key={String(column.key)} className={cn("px-4 py-3 text-slate-700", column.className)}>
@@ -120,7 +126,7 @@ export function DataTable<T extends object>({
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
           <p className="text-sm text-muted-foreground" aria-live="polite">
             Page {currentPage} of {pages}
           </p>
