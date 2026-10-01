@@ -70,7 +70,8 @@ export default function RequestReturnPage() {
         const original = data.items.find((row) => row.id === item.order_item_id);
         return <li key={item.order_item_id}>{original?.product_name}: {item.quantity} of {original?.quantity} · order line {original ? formatMoney(original.total_price) : "—"}</li>;
       })}</ul>
-      <p>Reason: {reason}</p>{notes && <p className="whitespace-pre-wrap">Notes: {notes}</p>}
+      <p>Reason: {reason}</p>{notes ? <p className="whitespace-pre-wrap">Notes: {notes}</p> :
+        <p className="text-sm text-slate-600">No additional notes; the reason is also sent as notes because the API requires a non-empty notes field.</p>}
       <p>Evidence: {files.map((file) => file.name).join(", ") || "None"}</p>
       <p className="text-sm text-slate-600">The backend determines the actual return amount from order item totals; this review does not estimate a refund.</p>
       <div className="flex gap-2"><Button variant="outline" onClick={() => setStep(1)}>Back</Button>

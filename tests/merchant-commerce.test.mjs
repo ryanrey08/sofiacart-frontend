@@ -54,7 +54,7 @@ test("return multipart matches Laravel's nested items and evidence arrays", () =
   assert.equal(data.get("order_id"), "4");
   assert.equal(data.get("items[0][quantity]"), "2");
   assert.equal(data.get("evidence[]").name, "evidence.png");
-  assert.equal(buildReturnFormData({ order_id: 4, customer_id: 5, reason: "Damaged", items: [{ order_item_id: 9, quantity: 1 }] }).get("notes"), "");
+  assert.equal(buildReturnFormData({ order_id: 4, customer_id: 5, reason: "Damaged", items: [{ order_item_id: 9, quantity: 1 }] }).get("notes"), "Damaged");
   assert.equal(validateEvidence([file]), null);
   assert.match(validateEvidence(Array(6).fill(file)), /five/);
   assert.match(validateEvidence([new File(["x"], "x.pdf", { type: "application/pdf" })]), /JPG/);

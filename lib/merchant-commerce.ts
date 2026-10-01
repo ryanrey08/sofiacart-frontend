@@ -58,7 +58,7 @@ export function buildReturnFormData(values: {
   data.append("order_id", String(values.order_id));
   data.append("customer_id", String(values.customer_id));
   data.append("reason", values.reason);
-  data.append("notes", values.notes ?? "");
+  data.append("notes", values.notes?.trim() || values.reason.trim());
   values.items.forEach((item, index) => {
     data.append(`items[${index}][order_item_id]`, String(item.order_item_id));
     data.append(`items[${index}][quantity]`, String(item.quantity));
