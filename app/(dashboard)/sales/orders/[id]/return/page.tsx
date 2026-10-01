@@ -70,6 +70,7 @@ export default function RequestReturnPage() {
   const setQuantity = (itemId: number, value: number, max: number) =>
     setQuantities((current) => ({ ...current, [itemId]: clampReturnQuantity(value, max) }));
   const selected = data.items.filter((item) => quantities[item.id] > 0).map((item) => ({ order_item_id: item.id, quantity: quantities[item.id] }));
+  const evidenceError = validateEvidence(files, true);
   const invalidQuantity = data.items.some((item) => {
     const quantity = quantities[item.id];
     return quantity !== undefined && (!Number.isInteger(quantity) || quantity < 0 || quantity > available(item.id, item.quantity));
@@ -128,39 +129,40 @@ export default function RequestReturnPage() {
     {step === 2 && <section className="space-y-4 rounded-2xl bg-white p-5 shadow-soft">
       <h2 className="font-semibold">Provide details</h2>
       <div>
-        <label className="text-sm font-medium" htmlFor="return-reason">Reason</label>
-        <SelectInput className="mt-1 w-full" id="return-reason" value={reasonChoice} onChange={(event) => setReasonChoice(event.target.value)}>
+        <label className="text-sm font-medium" htmlFor="return-reason">Reason <span className="text-red-600">*</span></label>
+        <SelectInput className="mt-1 w-full" id="return-reason" required aria-required="true" value={reasonChoice} onChange={(event) => setReasonChoice(event.target.value)}>
           <option value="">Select a reason</option>
           {returnReasons.map((value) => <option key={value} value={value}>{value}</option>)}
         </SelectInput>
       </div>
       {reasonChoice === "Other" && <div>
-        <label className="text-sm font-medium" htmlFor="return-reason-other">Describe the reason</label>
-        <Input id="return-reason-other" className="mt-1" maxLength={255} value={customReason} onChange={(event) => setCustomReason(event.target.value)} />
+        <label className="text-sm font-medium" htmlFor="return-reason-other">Describe the reason <span className="text-red-600">*</span></label>
+        <Input id="return-reason-other" className="mt-1" maxLength={255} required aria-required="true" value={customReason} onChange={(event) => setCustomReason(event.target.value)} />
       </div>}
       <div>
-        <label className="text-sm font-medium" htmlFor="return-notes">Additional details (optional)</label>
-        <Textarea id="return-notes" className="mt-1" maxLength={5000} rows={4} value={notes} onChange={(event) => setNotes(event.target.value)} />
+        <label className="text-sm font-medium" htmlFor="return-notes">Additional details <span className="text-red-600">*</span></label>
+        <Textarea id="return-notes" className="mt-1" maxLength={5000} rows={4} required aria-required="true" value={notes} onChange={(event) => setNotes(event.target.value)} />
+        <p className="mt-1 text-xs text-slate-500">Add details to help review your request. This field is required.</p>
       </div>
       <div>
-        <p className="text-sm font-medium" id="return-evidence-label">Upload photos (optional, recommended as evidence)</p>
+        <p className="text-sm font-medium" id="return-evidence-label">Upload at least one photo <span className="text-red-600">*</span></p>
         <div onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(Array.from(event.dataTransfer.files)); }}
           className="mt-1 rounded-2xl border-2 border-dashed border-slate-200 p-6 text-center">
           <Upload aria-hidden="true" className="mx-auto h-6 w-6 text-slate-400" />
           <p className="mt-2 text-sm text-slate-600">Drag and drop images here, or</p>
           <Button type="button" variant="outline" className="mt-2" onClick={() => fileInput.current?.click()}>Choose files</Button>
-          <p className="mt-2 text-xs text-slate-500">PNG, JPG, WebP (max 5 MB each, up to 5 photos)</p>
-          <input ref={fileInput} id="return-evidence" className="sr-only" aria-labelledby="return-evidence-label" type="file" multiple
+          <p className="mt-2 text-xs text-slate-500">Required · PNG, JPG, WebP (max 5 MB each, up to 5 photos)</p>
+          <input ref={fileInput} id="return-evidence" className="sr-only" aria-labelledby="return-evidence-label" aria-required="true" required type="file" multiple
             accept="image/jpeg,image/png,image/webp" onChange={(event) => { addFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
         </div>
         {!!files.length && <ul className="mt-3 flex flex-wrap gap-4">{files.map((file, index) =>
           <EvidencePreview key={`${file.name}-${index}`} file={file} onRemove={() => { setFiles(files.filter((_, position) => position !== index)); setFileError(null); }} />)}</ul>}
         {files.length >= 4 && !fileError && <p className="mt-2 text-sm text-amber-800">{files.length} of 5 photos selected.</p>}
-        {fileError && <p role="alert" className="mt-2 text-sm text-red-700">{fileError}</p>}
+        {(fileError || (step >= 2 && evidenceError)) && <p role="alert" className="mt-2 text-sm text-red-700">{fileError ?? evidenceError}</p>}
       </div>
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => setStep(1)}>Previous</Button>
-        <Button disabled={!reason || !!fileError} onClick={() => setStep(3)}>Continue</Button>
+        <Button disabled={!reason || !notes.trim() || !!fileError || !!evidenceError} onClick={() => setStep(3)}>Continue</Button>
       </div>
     </section>}
 
@@ -187,6 +189,10 @@ export default function RequestReturnPage() {
     {step === 4 && <section className="space-y-4 rounded-2xl bg-white p-5 shadow-soft">
       <h2 className="font-semibold">Review return request</h2>
       <p className="text-sm">Order {data.order_number} · Customer {data.customer?.name ?? `#${data.customer_id}`}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <h3 className="font-medium">Items to return</h3>
+        <Button type="button" variant="outline" size="sm" onClick={() => setStep(1)}>Edit items</Button>
+      </div>
       <ul className="space-y-1 text-sm">{selected.map((line) => {
         const item = data.items.find((row) => row.id === line.order_item_id);
         return <li key={line.order_item_id} className="flex flex-wrap justify-between gap-3">
@@ -194,13 +200,21 @@ export default function RequestReturnPage() {
           <span>{item ? formatMoney(estimatedReturnAmount(item, line.quantity)) : "—"}</span>
         </li>;
       })}</ul>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 pt-2">
+        <h3 className="font-medium">Reason and evidence</h3>
+        <Button type="button" variant="outline" size="sm" onClick={() => setStep(2)}>Edit details</Button>
+      </div>
       <p className="text-sm">Reason: <span className="font-medium">{reason}</span></p>
-      {notes ? <p className="whitespace-pre-wrap text-sm">Additional details: {notes}</p> :
-        <p className="text-sm text-slate-600">No additional details; the reason is also sent as notes because the API requires a non-empty notes field.</p>}
+      <p className="whitespace-pre-wrap text-sm">Additional details: {notes}</p>
+      <p className="text-sm text-slate-600">{files.length} evidence photo{files.length === 1 ? "" : "s"} attached.</p>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 pt-2">
+        <h3 className="font-medium">Refund preference</h3>
+        <Button type="button" variant="outline" size="sm" onClick={() => setStep(3)}>Edit preference</Button>
+      </div>
       <p className="text-sm">Preferred refund: Original payment method</p>
       {files.length ? <ul className="flex flex-wrap gap-4">{files.map((file, index) =>
         <EvidencePreview key={`${file.name}-${index}`} file={file} onRemove={() => setFiles(files.filter((_, position) => position !== index))} />)}</ul> :
-        <p className="text-sm text-slate-600">No evidence photos attached.</p>}
+        <p role="alert" className="text-sm text-red-700">Add at least one evidence photo before submitting.</p>}
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
         <h3 className="font-semibold">Important notes</h3>
         <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -212,7 +226,7 @@ export default function RequestReturnPage() {
       </div>
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => setStep(3)}>Previous</Button>
-        <Button disabled={submit.isPending || invalidQuantity || !selected.length || !reason} onClick={async () => {
+        <Button disabled={submit.isPending || invalidQuantity || !selected.length || !reason || !notes.trim() || !!evidenceError} onClick={async () => {
           submit.reset();
           try {
             const result = await submit.mutateAsync({ order_id: id, customer_id: data.customer_id!, reason, notes: notes.trim(), items: selected, evidence: files });

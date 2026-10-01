@@ -92,7 +92,8 @@ export function orderTimeline(order: MerchantOrder): Array<{ key: string; label:
   }));
 }
 
-export function validateEvidence(files: File[]) {
+export function validateEvidence(files: File[], required = false) {
+  if (required && !files.length) return "Upload at least one evidence photo.";
   if (files.length > 5) return "Select no more than five evidence files.";
   if (files.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type))) return "Evidence must be JPG, PNG or WebP.";
   if (files.some((file) => file.size > 5120 * 1024)) return "Each evidence file must be at most 5 MB.";
