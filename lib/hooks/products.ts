@@ -1,11 +1,19 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api/axios";
 import { buildInventoryAdjustPayload, buildProductFormData } from "@/lib/merchant-products";
 import { merchantPage } from "@/lib/merchant-resource";
 import type { ValidatedInventoryAdjust, ValidatedProductForm } from "@/lib/validation/product";
-import type { CategoryResource, InventoryAdjustResponse, InventoryLogResource, Paginated, ProductResource, ProductStatus } from "@/types";
+import type {
+  CategoryResource,
+  InventoryAdjustResponse,
+  InventoryLogResource,
+  Paginated,
+  ProductResource,
+  ProductStatus,
+  ProductStockStatus,
+} from "@/types";
 
 // Merchant catalog endpoints: sofiacart-backend routes/api.php `auth:sanctum` + `v1` group.
 // The backend scopes every call to the token's merchant, so no merchant_id is sent.
@@ -15,6 +23,7 @@ export interface ProductListParams {
   search?: string;
   status?: ProductStatus;
   category_id?: number;
+  stock_status?: ProductStockStatus;
   page?: number;
   per_page?: number;
 }
@@ -26,6 +35,43 @@ export function useProducts(params: ProductListParams) {
     placeholderData: keepPreviousData,
     staleTime: 0,
   });
+}
+
+const METRIC_FILTERS: Array<{ key: string; params: ProductListParams }> = [
+  { key: "total", params: {} },
+  { key: "active", params: { status: "active" } },
+  { key: "low_stock", params: { stock_status: "low_stock" } },
+  { key: "out_of_stock", params: { stock_status: "out_of_stock" } },
+];
+
+export interface ProductMetrics {
+  total: number | null;
+  active: number | null;
+  low_stock: number | null;
+  out_of_stock: number | null;
+  isPending: boolean;
+  isError: boolean;
+}
+
+// Summary metrics reuse the list endpoint's own filters so the counts always match the API.
+export function useProductMetrics(): ProductMetrics {
+  const results = useQueries({
+    queries: METRIC_FILTERS.map(({ key, params }) => ({
+      queryKey: [...PRODUCTS_KEY, "metrics", key],
+      queryFn: async () =>
+        (await api.get<Paginated<ProductResource>>("/api/v1/products", { params: { ...params, per_page: 1 } })).data.meta.total,
+      staleTime: 0,
+    })),
+  });
+
+  return {
+    total: results[0].data ?? null,
+    active: results[1].data ?? null,
+    low_stock: results[2].data ?? null,
+    out_of_stock: results[3].data ?? null,
+    isPending: results.some((result) => result.isPending),
+    isError: results.some((result) => result.isError),
+  };
 }
 
 export function useProduct(id: number | null) {

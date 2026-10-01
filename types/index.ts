@@ -235,6 +235,27 @@ export interface CategoryResource {
   updated_at: string | null;
 }
 
+// `stock_status` is computed by Product::getStockStatusAttribute() and also accepted as a list filter.
+export type ProductStockStatus = "out_of_stock" | "low_stock" | "active";
+
+export interface ProductImageResource {
+  id: number;
+  path: string;
+  is_main: boolean;
+  sort_order: number;
+}
+
+export interface ProductVariantResource {
+  id: number;
+  sku: string;
+  color: string | null;
+  size: string | null;
+  attributes: Record<string, unknown> | null;
+  price: string | number;
+  stock: number;
+  sort_order: number;
+}
+
 export interface ProductResource {
   id: number;
   merchant_id: number;
@@ -243,10 +264,26 @@ export interface ProductResource {
   slug: string;
   sku: string;
   description: string | null;
+  short_description: string | null;
+  full_description: string | null;
   status: ProductStatus;
   price: string | number;
+  regular_price: string | number | null;
+  sale_price: string | number | null;
+  cost_price: string | number | null;
+  brand: string | null;
+  condition: string | null;
+  weight: string | number | null;
+  tags: string[];
+  track_inventory: boolean;
   stock_quantity: number;
+  low_stock_threshold: number;
+  stock_status: ProductStockStatus;
+  dimensions: { length: string | number | null; width: string | number | null; height: string | number | null };
   images: string[] | null;
+  // Present on index/show/store/update (eager loaded); absent on the inventory adjust response.
+  image_items?: ProductImageResource[];
+  variants?: ProductVariantResource[];
   category?: CategoryResource | null;
   created_at: string | null;
   updated_at: string | null;
