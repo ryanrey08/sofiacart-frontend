@@ -66,9 +66,15 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
 - The backend decides which store a product belongs to from the merchant's token; the frontend never sends `merchant_id`.
 - Product images are shown from `NEXT_PUBLIC_API_URL/storage/<path>`, so run `php artisan storage:link` on the backend.
 
+## Merchant resource pages
+
+- `/sales/categories` lists, creates, edits and deletes merchant categories through `/api/v1/categories`. Category slugs must be globally unique. The backend has no category status, archive or parent/child fields; delete may be rejected when products reference a category.
+- `/sales/inventory` displays paginated `/api/v1/inventory/logs` (stock change, resulting quantity and reason). Adjust stock from `/sales/products` using `/api/v1/inventory/adjust`; there is no `/api/v1/inventory` list or reorder-threshold field.
+- `/sales/orders`, `/finance/payments`, `/finance/transactions` and `/finance/refunds` display merchant-scoped, paginated `/api/v1/{orders,payments,transactions,refunds}` resources. Search and sorting on these tables apply to the **current page**; use pagination to browse the rest. These pages show loading, empty and retryable API error states instead of fallback sample data. Payment metadata is never rendered.
+- Merchant order creation/payment processing/refund execution is **not offered** by these read-only pages: the backend currently trusts client-submitted order item prices and does not transactionally reserve/reduce stock on order creation or restore it on cancellation/refund. Do not treat a client-side flow as a safe checkout/payment implementation. See `SOFIACART_IMPLEMENTATION_STATUS.md` for the verified contract and outstanding work.
+
 ## Notes
 
 - All API requests use `NEXT_PUBLIC_API_URL` as the base URL.
 - Example resolution: `NEXT_PUBLIC_API_URL=http://localhost:8000` + `/api/v1/orders` => `http://localhost:8000/api/v1/orders`.
-- Management and report views include realistic placeholder data so the UI renders cleanly before the Laravel backend is connected.
-- The dashboard overview always shows sample data; management and report views fall back to samples when requests fail. Login requires a working API. The backend endpoints and response contracts used by this scaffold have not been verified against a live backend.
+- Dashboard overview, customers and report views retain their existing sample-data behavior. The six merchant resource pages above and the Products page require the real API; no sample data is shown on failure. A deployed backend was not available for an end-to-end browser run.

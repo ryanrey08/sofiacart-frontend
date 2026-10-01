@@ -1,6 +1,29 @@
 # SofiaCart Frontend – Implementation Status
 
-_Last updated: 2026-09-30_
+_Last updated: 2026-10-01_
+
+## Scope of this update: merchant resource API integration
+
+The backend contract was inspected at `ryanrey08/sofiacart-backend` commit `7437acf` (`routes/api.php`, `app/Http/Controllers/Api/*Controller.php`, `app/Http/Resources/*Resource.php`, `app/Http/Requests/*Request.php`, enums and `Controller::pageSize`). These routes require `auth:sanctum`, derive merchant ownership from the authenticated user, and return `{ data: [...], links, meta: { current_page, last_page, per_page, total } }` for lists. `page` selects the page; `per_page` is capped at 100. Single category writes return `{ data: CategoryResource }`; category deletion returns 204.
+
+| Page | Real API | Fields displayed |
+| --- | --- | --- |
+| Categories | `GET /api/v1/categories?page=&per_page=15`; `POST /api/v1/categories` / `PATCH /api/v1/categories/{id}` `{name,slug,description}`; `DELETE /api/v1/categories/{id}` | `CategoryResource`: name, slug, description |
+| Inventory | `GET /api/v1/inventory/logs?page=&per_page=15` | `InventoryLogResource`: product name/ID, reason, quantity_change, resulting_stock, created_at |
+| Orders | `GET /api/v1/orders?page=&per_page=15` | `OrderResource`: order_number, customer, items, total_amount, ordered_at, status, payment_status |
+| Payments | `GET /api/v1/payments?page=&per_page=15` | `PaymentResource`: reference, order_id, gateway, amount, paid_at, status |
+| Transactions | `GET /api/v1/transactions?page=&per_page=15` | `TransactionResource`: reference, type, amount, transacted_at, status |
+| Refunds | `GET /api/v1/refunds?page=&per_page=15` | `RefundResource`: reference, order_id, payment_id, reason, amount, created_at, status |
+
+The order/payment/transaction/refund pages are deliberately read-only. They use the existing admin resource types for their shared public fields, preserve the backend's actual enum statuses (including `processed`, `partially_refunded`, `unpaid`), do not render payment metadata or secrets, and do not invent payment initiation endpoints. The category page implements only the backend-supported CRUD; there is no category status/archive, product count or parent relationship in its resource/schema. Category deletion may be refused by database constraints if products reference it. Product category options now fetch all category pages and writes invalidate category and product queries. Stock adjustments invalidate inventory history too. The shared `ResourcePage` retains its existing design and exposes server pagination, loading, empty and retryable error states. Search/sort on these lists apply only to the current server page.
+
+**Changed files:** `app/(dashboard)/layout.tsx`, `app/(dashboard)/sales/{categories,inventory,orders}/page.tsx`, `app/(dashboard)/finance/{payments,transactions,refunds}/page.tsx`, `components/resource-page.tsx`, `lib/hooks/{categories,inventory,orders,payments,transactions,refunds,merchant-list,products}.ts`, `lib/merchant-resource.ts`, `tests/merchant-resource.test.mjs`, `package.json`, `README.md` and this status document. Existing admin flows and unrelated mock-backed dashboard/customer/report views are untouched.
+
+**Verification (Node environment):** `npm ci` passed (0 vulnerabilities); `npm run test:unit` passed (23/23); `npm run lint` passed; `npx tsc --noEmit` passed; `npm run build` passed (all six merchant routes built); `npm run test:smoke` passed (1/1 public-route check). No live backend credentials or deployed API were available for authenticated end-to-end requests.
+
+**Backend blockers / remaining work:** There is no `GET /api/v1/inventory` aggregate or category archive/status/tree, so no threshold or hierarchy is fabricated. Order creation currently accepts client-supplied `unit_price` and does not transactionally decrement/lock product stock, while cancellation/refund does not restore inventory; safe end-to-end checkout needs backend changes before exposing these actions. Payment creation accepts client-supplied status/amount, so the frontend does not claim gateway verification or initiate payments. Backend refund processing uses payment status and processed totals but inventory restoration is not implemented. Do not delete processed refunds through the backend's resource delete route: it does not recalculate payment/order statuses. Browser/API integration with an authenticated merchant and backend feature tests remain to be performed in a backend-enabled environment.
+
+The section below records the earlier product implementation as it stood on 2026-09-30; its notes about *other* merchant pages showing sample data are superseded by this update.
 
 ## Scope of this update: merchant product management
 

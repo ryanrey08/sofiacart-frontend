@@ -1,26 +1,32 @@
 "use client";
+import { useState } from "react";
 import { ResourcePage } from "@/components/resource-page";
-import { StatusBadge } from "@/components/status-badge";
 import { useInventory } from "@/lib/hooks/inventory";
-import { mockInventory } from "@/lib/mocks";
-import { formatDate } from "@/lib/utils";
-import type { InventoryItem } from "@/types";
+import { formatDateTime } from "@/lib/admin/format";
+import type { InventoryLogResource } from "@/types";
 
 export default function InventoryPage() {
-  const { data = mockInventory } = useInventory();
+  const [page, setPage] = useState(1);
+  const logs = useInventory(page);
   return (
-    <ResourcePage<InventoryItem>
+    <ResourcePage<InventoryLogResource>
       title="Inventory"
-      description="Stay ahead of stockouts with reorder thresholds and inventory health checks."
-      data={data}
-      searchKeys={["product", "sku", "status"]}
+      description="Review stock adjustment history. Adjust stock from the Products page."
+      data={logs.data?.data ?? []}
+      loading={logs.isPending}
+      error={logs.isError ? logs.error : null}
+      onRetry={() => void logs.refetch()}
+      meta={logs.data?.meta}
+      currentPage={page}
+      onPageChange={setPage}
+      statusFilterEnabled={false}
+      searchKeys={["reason", "notes"]}
       columns={[
-        { key: "product", header: "Product", sortable: true },
-        { key: "sku", header: "SKU", sortable: true },
-        { key: "stock", header: "On Hand", sortable: true },
-        { key: "threshold", header: "Threshold", sortable: true },
-        { key: "updatedAt", header: "Updated", sortable: true, render: (item) => formatDate(item.updatedAt) },
-        { key: "status", header: "Status", render: (item) => <StatusBadge status={item.status} /> },
+        { key: "product", header: "Product", render: (log) => log.product?.name ?? `Product #${log.product_id}` },
+        { key: "reason", header: "Reason", sortable: true },
+        { key: "quantity_change", header: "Change", sortable: true },
+        { key: "resulting_stock", header: "On Hand", sortable: true },
+        { key: "created_at", header: "Date", render: (log) => formatDateTime(log.created_at) },
       ]}
     />
   );

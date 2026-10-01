@@ -1,26 +1,35 @@
 "use client";
+import { useState } from "react";
 import { ResourcePage } from "@/components/resource-page";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusPill } from "@/components/admin/ui";
 import { useRefunds } from "@/lib/hooks/refunds";
-import { mockRefunds } from "@/lib/mocks";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import type { Refund } from "@/types";
+import { formatDateTime, formatMoney } from "@/lib/admin/format";
+import type { AdminRefund } from "@/types/admin";
 
 export default function RefundsPage() {
-  const { data = mockRefunds } = useRefunds();
+  const [page, setPage] = useState(1);
+  const refunds = useRefunds(page);
   return (
-    <ResourcePage<Refund>
+    <ResourcePage<AdminRefund>
       title="Refunds"
-      description="Track refund requests, reasons, and approval outcomes in real time."
-      data={data}
-      searchKeys={["refundId", "orderNumber", "customer", "status"]}
+      description="Track your store's refund requests and processing status."
+      data={refunds.data?.data ?? []}
+      loading={refunds.isPending}
+      error={refunds.isError ? refunds.error : null}
+      onRetry={() => void refunds.refetch()}
+      meta={refunds.data?.meta}
+      currentPage={page}
+      onPageChange={setPage}
+      statusFilterEnabled={false}
+      searchKeys={["reference", "reason", "status"]}
       columns={[
-        { key: "refundId", header: "Refund ID", sortable: true },
-        { key: "orderNumber", header: "Order #", sortable: true },
-        { key: "customer", header: "Customer", sortable: true },
-        { key: "amount", header: "Amount", sortable: true, render: (refund) => formatCurrency(refund.amount) },
-        { key: "requestedAt", header: "Requested", sortable: true, render: (refund) => formatDate(refund.requestedAt) },
-        { key: "status", header: "Status", render: (refund) => <StatusBadge status={refund.status} /> },
+        { key: "reference", header: "Reference", sortable: true },
+        { key: "order_id", header: "Order", render: (refund) => refund.order_id ? `#${refund.order_id}` : "—" },
+        { key: "payment_id", header: "Payment", render: (refund) => `#${refund.payment_id}` },
+        { key: "reason", header: "Reason" },
+        { key: "amount", header: "Amount", render: (refund) => formatMoney(refund.amount) },
+        { key: "created_at", header: "Requested", render: (refund) => formatDateTime(refund.created_at) },
+        { key: "status", header: "Status", render: (refund) => <StatusPill status={refund.status} /> },
       ]}
     />
   );

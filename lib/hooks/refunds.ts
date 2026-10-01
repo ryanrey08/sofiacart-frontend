@@ -1,5 +1,4 @@
 "use client";
-import { mockRefunds } from "@/lib/mocks";
-import { useResourceQuery } from "@/lib/hooks/use-resource-query";
-import type { Refund } from "@/types";
-export function useRefunds() { return useResourceQuery<Refund[]>(["refunds"], "/api/v1/refunds", mockRefunds); }
+import { useMerchantList } from "@/lib/hooks/merchant-list";
+import type { AdminRefund } from "@/types/admin";
+export function useRefunds(page: number) { return useMerchantList<AdminRefund>("refunds", page); }
