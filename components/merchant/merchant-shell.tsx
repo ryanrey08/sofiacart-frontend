@@ -25,7 +25,7 @@ export function MerchantShell({ children }: { children: ReactNode }) {
           <p className="flex items-start gap-2 rounded-xl border border-amber-200/70 bg-amber-50 px-3 py-2 text-xs text-amber-900 sm:text-sm">
             <Info aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              Dashboard overview, customers and reports may use sample data and are labelled when they do. Product, category, inventory, order and finance pages require the merchant API and show errors when it is unavailable.
+              Dashboard overview and reports may use sample data and are labelled when they do. Product, category, inventory, customer, order and finance pages require the merchant API and show errors when it is unavailable.
             </span>
           </p>
           <main id="merchant-main" tabIndex={-1} className="min-w-0 focus:outline-none">{children}</main>

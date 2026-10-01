@@ -12,6 +12,7 @@ import { parseApiError, fieldErrorList } from "@/lib/admin/errors";
 import { useChangeOrderStatus, useOrder } from "@/lib/hooks/orders";
 import { useOrderReturns } from "@/lib/hooks/return-requests";
 import { allowedOrderTransitions, orderTimeline, returnStateEligible } from "@/lib/merchant-commerce";
+import { formatCustomerAddress } from "@/lib/merchant-customers";
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return <section className="rounded-2xl bg-white p-5 shadow-soft">
@@ -97,7 +98,7 @@ export default function OrderDetailPage() {
       </Panel>
       <Panel title="Shipping information">
         <Line label="Recipient" value={data.customer?.name ?? "—"} />
-        <Line label="Address" value={data.shipping_address ?? data.customer?.address ?? "Not provided"} />
+        <Line label="Address" value={data.shipping_address || formatCustomerAddress(data.customer?.address) || "Not provided"} />
         <p className="pt-1 text-xs text-slate-500">The merchant API exposes no shipping method or tracking number on this order, so none is shown.</p>
       </Panel>
       <Panel title="Payment information">
