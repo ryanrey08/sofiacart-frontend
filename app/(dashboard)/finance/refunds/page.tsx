@@ -18,6 +18,7 @@ export default function RefundsPage() {
       error={refunds.isError ? refunds.error : null}
       onRetry={() => void refunds.refetch()}
       meta={refunds.data?.meta}
+      currentPage={page}
       onPageChange={setPage}
       statusFilterEnabled={false}
       searchKeys={["reference", "reason", "status"]}

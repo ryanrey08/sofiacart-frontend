@@ -62,6 +62,7 @@ export default function CategoriesPage() {
         error={categories.isError ? categories.error : null}
         onRetry={() => void categories.refetch()}
         meta={categories.data?.meta}
+        currentPage={page}
         onPageChange={setPage}
         statusFilterEnabled={false}
         searchKeys={["name", "slug", "description"]}

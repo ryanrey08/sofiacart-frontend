@@ -18,6 +18,7 @@ export default function PaymentsPage() {
       error={payments.isError ? payments.error : null}
       onRetry={() => void payments.refetch()}
       meta={payments.data?.meta}
+      currentPage={page}
       onPageChange={setPage}
       statusFilterEnabled={false}
       searchKeys={["reference", "gateway", "status"]}

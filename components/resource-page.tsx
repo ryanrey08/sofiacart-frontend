@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { EmptyState, ErrorState, LoadingState, Pagination } from "@/components/admin/ui";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export function ResourcePage<T extends object>({
   title,
@@ -17,6 +18,7 @@ export function ResourcePage<T extends object>({
   onRetry,
   meta,
   onPageChange,
+  currentPage,
   statusFilterEnabled = true,
   actions,
 }: {
@@ -30,6 +32,7 @@ export function ResourcePage<T extends object>({
   onRetry?: () => void;
   meta?: { current_page: number; last_page: number; total: number };
   onPageChange?: (page: number) => void;
+  currentPage?: number;
   statusFilterEnabled?: boolean;
   actions?: ReactNode;
 }) {
@@ -113,6 +116,8 @@ export function ResourcePage<T extends object>({
       {loading ? <LoadingState /> : error ? <ErrorState error={error} onRetry={onRetry} /> :
         filteredData.length === 0 ? <EmptyState /> :
         <DataTable key={tableKey} data={filteredData} columns={columns} pageSize={meta ? 15 : 6} />}
+      {error && currentPage && currentPage > 1 && onPageChange ?
+        <Button variant="outline" onClick={() => onPageChange(1)}>Return to first page</Button> : null}
       {!loading && !error && meta && onPageChange ? <Pagination meta={meta} onPageChange={onPageChange} /> : null}
     </div>
   );

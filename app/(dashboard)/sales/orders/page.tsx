@@ -18,6 +18,7 @@ export default function OrdersPage() {
       error={orders.isError ? orders.error : null}
       onRetry={() => void orders.refetch()}
       meta={orders.data?.meta}
+      currentPage={page}
       onPageChange={setPage}
       statusFilterEnabled={false}
       searchKeys={["order_number", "status", "payment_status"]}

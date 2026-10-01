@@ -18,6 +18,7 @@ export default function TransactionsPage() {
       error={transactions.isError ? transactions.error : null}
       onRetry={() => void transactions.refetch()}
       meta={transactions.data?.meta}
+      currentPage={page}
       onPageChange={setPage}
       statusFilterEnabled={false}
       searchKeys={["reference", "type", "status"]}

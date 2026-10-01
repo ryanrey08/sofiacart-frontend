@@ -17,6 +17,7 @@ export default function InventoryPage() {
       error={logs.isError ? logs.error : null}
       onRetry={() => void logs.refetch()}
       meta={logs.data?.meta}
+      currentPage={page}
       onPageChange={setPage}
       statusFilterEnabled={false}
       searchKeys={["reason", "notes"]}
