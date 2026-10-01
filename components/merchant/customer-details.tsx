@@ -115,8 +115,9 @@ export function CustomerDetailsPanel({
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const query = useCustomer(customerId);
-  // Real order history, only requested when the customer resource carries no order aggregates.
-  const orders = useCustomerOrders(customerId, 5, query.data?.recent_orders == null || query.data.orders_count == null);
+  // Real order history, only requested when the loaded customer carries no order aggregates.
+  const ordersEnabled = query.isSuccess && (query.data.recent_orders == null || query.data.orders_count == null);
+  const orders = useCustomerOrders(customerId, 5, ordersEnabled);
 
   if (query.isPending) return <DetailsSkeleton />;
   if (query.isError) {
@@ -198,7 +199,7 @@ export function CustomerDetailsPanel({
       <Card className="border-none bg-white/95">
         <CardContent className="p-4 sm:p-5">
           <div role="tablist" aria-label="Customer details sections" className="mb-4 flex flex-wrap gap-1 rounded-xl bg-slate-50 p-1">
-            {TABS.map((item) => (
+            {TABS.map((item, index) => (
               <button
                 key={item}
                 type="button"
@@ -206,7 +207,16 @@ export function CustomerDetailsPanel({
                 id={`customer-tab-${item}`}
                 aria-selected={tab === item}
                 aria-controls={`customer-panel-${item}`}
+                tabIndex={tab === item ? 0 : -1}
                 onClick={() => setTab(item)}
+                onKeyDown={(event) => {
+                  const offset = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+                  if (!offset) return;
+                  event.preventDefault();
+                  const next = TABS[(index + offset + TABS.length) % TABS.length];
+                  setTab(next);
+                  document.getElementById(`customer-tab-${next}`)?.focus();
+                }}
                 className={cn(
                   "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-200",
                   tab === item ? "bg-white text-brand-700 shadow-sm" : "text-slate-600 hover:text-slate-900",
@@ -249,11 +259,11 @@ export function CustomerDetailsPanel({
 
             {tab === "orders" ? (
               <div className="space-y-3">
-                {orders.isPending && !customer.recent_orders ? <p className="text-sm text-muted-foreground">Loading orders…</p> : null}
+                {ordersEnabled && orders.isPending ? <p className="text-sm text-muted-foreground">Loading orders…</p> : null}
                 {ordersUnavailable ? (
                   <ErrorState error={orders.error} title="Unable to load orders" onRetry={() => void orders.refetch()} />
                 ) : null}
-                {!ordersUnavailable && recentOrders.length === 0 && !orders.isPending ? (
+                {!ordersUnavailable && recentOrders.length === 0 && !(ordersEnabled && orders.isPending) ? (
                   <p className="text-sm text-muted-foreground">This customer has no orders yet.</p>
                 ) : null}
                 <ul className="space-y-2">
