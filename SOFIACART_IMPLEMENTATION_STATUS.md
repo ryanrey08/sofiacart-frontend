@@ -2,6 +2,55 @@
 
 _Last updated: 2026-10-01_
 
+## Scope of this update: product creation/management redesign
+
+Rebuilds the merchant product list and the Add/Edit product experience against the **expanded** product API that landed in `ryanrey08/sofiacart-backend` PR #6 ("Expand product API for catalog management", branch `copilot/redesign-add-edit-product-ui`, merged into `main`). The contract below was read from the backend code on `main`, not assumed from the design: `routes/api.php`, `ProductsController`, `StoreProductRequest`, `UpdateProductRequest`, `ProductResource`, `Product`/`ProductImage`/`ProductVariant`, the catalog-field/`product_images`/`product_variants` migrations and `tests/Feature/ProductCrudTest.php`.
+
+### Endpoints used (unchanged routes)
+
+| Action | Request | Response |
+| --- | --- | --- |
+| List + metrics | `GET /api/v1/products?search=&status=&category_id=&stock_status=&page=&per_page=` | paginated `ProductResource` |
+| View | `GET /api/v1/products/{id}` | `{ data: ProductResource }` (eager loads `category`, `variants`, `imageRecords`) |
+| Create | `POST /api/v1/products` (multipart) | `201 { data: ProductResource }` |
+| Edit | `POST /api/v1/products/{id}` with `_method=PATCH` (multipart) | `{ data: ProductResource }` |
+| Archive / restore | `PATCH /api/v1/products/{id}` `{ status }` (JSON) | `{ data: ProductResource }` |
+| Delete | `DELETE /api/v1/products/{id}` | `204` |
+| Stock adjustment / history | `POST /api/v1/inventory/adjust`, `GET /api/v1/inventory/logs` | unchanged |
+
+### Request fields (exactly the FormRequest keys; `merchant_id` is never sent)
+
+`name`, `slug`, `sku`, `short_description`, `full_description`, `category_id`, `status`, `regular_price`, `sale_price`, `cost_price`, `brand`, `condition`, `weight`, `tags[]`, `length`, `width`, `height`, `track_inventory` (`1`/`0`), `stock_quantity`, `low_stock_threshold`, `images[]`, `main_image_index`, and on update `image_ids[]` / `main_image_id`. `variants` is sent as a JSON string of `{sku, color, size, price, stock, sort_order}` because multipart cannot carry nested arrays — `prepareForValidation()` decodes it. `price` is not sent: the controller derives it from `regular_price`. `short_description` is omitted when empty because the update rule is `sometimes|required`; the other nullable fields are sent empty so they can be cleared.
+
+### Behaviour matched to the backend
+
+- Client validation mirrors the rules: kebab-case slug, 200/2000 character descriptions, `sale_price <= regular_price`, numeric precision for `decimal(12,2)`/`decimal(10,3)`, distinct variant SKUs, `jpg/jpeg/png/webp` images up to 5 MB, and the five `ProductStatus` values (`pending_approval` and `rejected` are preserved on products that already have them).
+- Images: uploading files replaces the whole gallery (`main_image_index` chooses the primary); without uploads an edit maintains the gallery by id, where the order of `image_ids[]` is `sort_order`, omitted ids are deleted and `main_image_id` sets the primary. The UI states this before saving instead of pretending images can be appended.
+- Variants are replaced wholesale on save (the controller deletes and recreates them), so variant ids are not used as React keys across saves.
+- 422 responses are mapped field-by-field, including `images.{n}`, `tags.{n}` and `variants.{n}.{field}`; unmapped errors (e.g. `merchant`) surface as a form-level message. 404 for a foreign category, 413 uploads, 401/403 and network failures keep their existing messages.
+- Writes still write the returned resource into the detail cache and invalidate the product queries, which now also refreshes the summary metrics.
+
+### Visual changes
+
+- `/sales/products`: content panel with four summary metrics (total/active/low stock/out of stock, each counted through the list endpoint's own filters), search + category/status/stock filters, row selection with bulk archive/delete, per-row edit/stock/archive/delete, pagination and a sticky preview side panel showing images, pricing, details, tags, variants and inventory history.
+- Add/Edit moved out of a modal into full pages inside the merchant shell (`/sales/products/new`, `/sales/products/[id]/edit`) with a back/header row, Cancel/Save, and a two-column card layout: Basic information, Pricing, Product details, Images, Variants on the left; Inventory and Visibility on the right. Below `sm` the layout is single column with a sticky Save/Cancel bar.
+
+### Changed files
+
+`app/(dashboard)/sales/products/page.tsx`, new `app/(dashboard)/sales/products/new/page.tsx` and `app/(dashboard)/sales/products/[id]/edit/page.tsx`, `components/merchant/product-form.tsx`, `components/merchant/product-details.tsx`, `lib/merchant-products.ts`, `lib/validation/product.ts`, `lib/hooks/products.ts`, `types/index.ts`, `tests/merchant-products.test.mjs`, `README.md` and this document. No migrations (frontend). The merchant shell, navigation, categories/inventory/orders/finance pages and the admin app were not touched.
+
+### Tests and results
+
+- `npm run lint` — clean.
+- `npx tsc --noEmit` — clean.
+- `npm run build` — succeeds; `/sales/products/new` and `/sales/products/[id]/edit` are emitted.
+- `npm run test:unit` — 31/31 pass (16 product tests covering schema rules, multipart keys, gallery maintenance, resource→form mapping, tag parsing and error mapping). `npm run test:smoke` — 1/1 pass.
+- Manual run: no deployed SofiaCart backend is reachable from this environment, so the flow (list → preview → Add product → client validation → 422 mapping → create → redirect → edit prefill, desktop and 390px mobile) was exercised in Chrome against a local process that replays the documented Laravel contract. The captured multipart bodies contain exactly the keys listed above and no `merchant_id`. **An end-to-end check against a live backend and database is still outstanding.**
+
+### Cross-repo compatibility
+
+Every field and endpoint used here exists in `sofiacart-backend` `main`. The backend has no archive/restore endpoint (status change is used), no soft deletes, no incremental image upload and no barcode/SEO/variant-image columns, so none are shown. Products created before PR #6 still work: `regular_price` falls back to `price`, `full_description` to `description`, `tags` to `[]` and the gallery to the legacy `images` path list.
+
 ## Scope of this update: merchant visual redesign (registration + logged-in merchant UI)
 
 Design targets were the three user-supplied reference images, in this order: (1) the merchant dashboard (dark purple gradient left rail, store header, compact KPI cards, charts, orders, low-stock and quick-actions panels), (2) registration Step 3 Owner Information (gradient onboarding rail, horizontal desktop progress tracker, white rounded form panel, 2-column labelled fields, document upload), and (3) registration Step 2 Store Information (same frame, store fields, logo/banner preview cards, social links). Copy from the images was not reused as data.
@@ -68,7 +117,7 @@ The order/payment/transaction/refund pages are deliberately read-only. They use 
 
 **Backend blockers / remaining work:** There is no `GET /api/v1/inventory` aggregate or category archive/status/tree, so no threshold or hierarchy is fabricated. Order creation currently accepts client-supplied `unit_price` and does not transactionally decrement/lock product stock, while cancellation/refund does not restore inventory; safe end-to-end checkout needs backend changes before exposing these actions. Payment creation accepts client-supplied status/amount, so the frontend does not claim gateway verification or initiate payments. Backend refund processing uses payment status and processed totals but inventory restoration is not implemented. Do not delete processed refunds through the backend's resource delete route: it does not recalculate payment/order statuses. Browser/API integration with an authenticated merchant and backend feature tests remain to be performed in a backend-enabled environment.
 
-The section below records the earlier product implementation as it stood on 2026-09-30; its notes about *other* merchant pages showing sample data are superseded by this update.
+The section below records the earlier product implementation as it stood on 2026-09-30; its notes about *other* merchant pages showing sample data are superseded by this update. Its product field list, modal-based create/edit flow and `description`-only form are superseded by the product creation/management redesign documented at the top of this file.
 
 ## Scope of this update: merchant product management
 

@@ -62,7 +62,11 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
 
 ## Merchant product management
 
-- `/sales/products` lists, creates (multipart with `images[]`), views, edits, archives and deletes the signed-in merchant's products, and adjusts stock. It calls `/api/v1/products`, `/api/v1/categories`, `/api/v1/inventory/adjust` and `/api/v1/inventory/logs`.
+- `/sales/products` is the catalogue panel: summary metrics, search, category/status/stock filters, row selection with bulk archive/delete, per-row edit, stock adjustment, archive/restore and delete, pagination, and a preview side panel. It calls `/api/v1/products`, `/api/v1/categories`, `/api/v1/inventory/adjust` and `/api/v1/inventory/logs`.
+- Metrics and the stock filter use the backend's own `stock_status` (`active`, `low_stock`, `out_of_stock`) computed from `track_inventory`, `stock_quantity` and `low_stock_threshold`.
+- `/sales/products/new` and `/sales/products/[id]/edit` are full pages inside the merchant shell with Basic information, Pricing, Product details, Images, Variants, Inventory and Visibility sections. Supported fields mirror `StoreProductRequest`/`UpdateProductRequest`: `name`, `slug`, `sku`, `short_description`, `full_description`, `category_id`, `status`, `regular_price`, `sale_price`, `cost_price`, `brand`, `condition`, `weight`, `tags[]`, `length`/`width`/`height`, `track_inventory`, `stock_quantity`, `low_stock_threshold`, `images[]` and `variants`.
+- Creates are `POST /api/v1/products`; edits are `POST /api/v1/products/{id}` with `_method=PATCH` (PHP only parses multipart bodies on POST). `variants` is sent as a JSON string because multipart cannot carry nested arrays; the FormRequest decodes it, and saving replaces the stored variants.
+- Images: uploading files **replaces the whole gallery** (`main_image_index` picks the primary). Without new uploads an edit maintains the gallery by id — the order of `image_ids[]` becomes `sort_order`, omitted ids are deleted and `main_image_id` sets the primary. The form explains this before you save.
 - The backend decides which store a product belongs to from the merchant's token; the frontend never sends `merchant_id`.
 - Product images are shown from `NEXT_PUBLIC_API_URL/storage/<path>`, so run `php artisan storage:link` on the backend.
 
