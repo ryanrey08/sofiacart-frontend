@@ -156,7 +156,7 @@ export function MobileSidebar({ open, onClose, id }: { open: boolean; onClose: (
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <button type="button" aria-label="Close navigation menu" tabIndex={-1} className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm" onClick={onClose} />
+      <div aria-hidden="true" className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm" onClick={onClose} />
       <div
         id={id}
         ref={panelRef}

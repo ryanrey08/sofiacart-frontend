@@ -1,13 +1,17 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
-import { getStoredAuth } from "@/lib/auth";
+import { AUTH_CHANGE_EVENT, getStoredAuth } from "@/lib/auth";
 import { describeMerchant } from "@/lib/merchant-identity";
 import type { AuthUser } from "@/types";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
-  return () => window.removeEventListener("storage", onChange);
+  window.addEventListener(AUTH_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(AUTH_CHANGE_EVENT, onChange);
+  };
 }
 
 // Serialized so the snapshot is referentially stable between renders.

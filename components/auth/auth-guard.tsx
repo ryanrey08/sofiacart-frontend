@@ -3,14 +3,17 @@
 import type { ReactNode } from "react";
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getStoredAuth } from "@/lib/auth";
+import { AUTH_CHANGE_EVENT, getStoredAuth } from "@/lib/auth";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
-  return () => window.removeEventListener("storage", onChange);
+  window.addEventListener(AUTH_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(AUTH_CHANGE_EVENT, onChange);
+  };
 }
 
-// `undefined` on the server/first hydration pass keeps server and client markup identical.
 function getAuthSnapshot(): boolean {
   return getStoredAuth() !== null;
 }
@@ -18,7 +21,7 @@ function getAuthSnapshot(): boolean {
 export function AuthGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isAuthenticated = useSyncExternalStore<boolean | undefined>(subscribe, getAuthSnapshot, () => undefined);
+  const isAuthenticated = useSyncExternalStore<boolean | undefined>(subscribe, getAuthSnapshot, () => undefined); // undefined during SSR/hydration keeps markup identical
 
   useEffect(() => {
     if (isAuthenticated === false) {

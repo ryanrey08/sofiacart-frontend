@@ -10,9 +10,12 @@ export interface MerchantIdentity {
   statusLabel: string | null;
 }
 
+/** SofiaCart brand initials, used when the user has no name. */
+const DEFAULT_INITIALS = "SC";
+
 export function getInitials(name: string | null | undefined) {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "SC";
+  if (parts.length === 0) return DEFAULT_INITIALS;
   const letters = parts.length === 1 ? parts[0].slice(0, 2) : `${parts[0][0]}${parts[parts.length - 1][0]}`;
   return letters.toUpperCase();
 }
