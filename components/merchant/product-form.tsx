@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import type { FieldPath } from "react-hook-form";
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowUp, Boxes, Eye, ImagePlus, Info, Layers, Loader2, Plus, Tag, Trash2, Wallet, X } from "lucide-react";
 import { Field, Notice, SelectInput } from "@/components/admin/ui";
@@ -88,7 +89,7 @@ export function ProductForm({
     } catch (error) {
       const result = mapProductApiError(error, "The product could not be saved. Please try again.");
       (Object.entries(result.fieldErrors) as Array<[ProductFormErrorPath, string]>).forEach(([field, message]) =>
-        setError(field as never, { type: "server", message }),
+        setError(field as FieldPath<ProductFormValues>, { type: "server", message }),
       );
       setFormError(result.formError);
     }
@@ -497,7 +498,10 @@ function ProductImagesEditor({
                 };
                 const removeFile = (index: number) => {
                   filesField.onChange(files.filter((_, fileIndex) => fileIndex !== index));
-                  if (primaryField.value === `new:${index}`) primaryField.onChange("");
+                  // primaryImage stores "new:<index>", so the remaining uploads shift down by one.
+                  const primaryIndex = primaryField.value.startsWith("new:") ? Number(primaryField.value.slice(4)) : null;
+                  if (primaryIndex === index) primaryField.onChange("");
+                  else if (primaryIndex !== null && primaryIndex > index) primaryField.onChange(`new:${primaryIndex - 1}`);
                 };
 
                 return (
