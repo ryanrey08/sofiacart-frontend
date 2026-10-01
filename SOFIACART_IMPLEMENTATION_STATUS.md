@@ -2,6 +2,51 @@
 
 _Last updated: 2026-10-01_
 
+## Scope of this update: merchant visual redesign (registration + logged-in merchant UI)
+
+Design targets were the three user-supplied reference images, in this order: (1) the merchant dashboard (dark purple gradient left rail, store header, compact KPI cards, charts, orders, low-stock and quick-actions panels), (2) registration Step 3 Owner Information (gradient onboarding rail, horizontal desktop progress tracker, white rounded form panel, 2-column labelled fields, document upload), and (3) registration Step 2 Store Information (same frame, store fields, logo/banner preview cards, social links). Copy from the images was not reused as data.
+
+### What changed
+- **Design tokens** (`tailwind.config.ts`, `app/globals.css`): `navy` palette, `bg-brand-rail` (dark purple rail) and `bg-brand-cta` gradients, `shadow-card`. Base element rules now live in `@layer base`; previously unlayered `font: inherit` / `color: inherit` overrode Tailwind utilities, so inputs ignored `text-sm`.
+- **Shared primitives**: `Card`, `Button` (new `accent` orange variant, focus ring offset), `Input`/`Textarea` (`aria-invalid` when `hasError`, tighter radius/height), `Label`, `DataTable` (`scope`/`aria-sort`, buttons only on sortable headers, optional `className`), `MetricCard` (compact KPI), `ResourcePage` (shared `PageIntro`, section eyebrow from the route, labelled search, optional `isSample`), `ReportPage` (optional `isSample`), new `components/merchant/page-intro.tsx` (`PageIntro`, `SampleDataBadge`).
+- **Merchant shell** (`app/(dashboard)/layout.tsx`, new `components/merchant/merchant-shell.tsx`, `components/sidebar.tsx`, `components/top-nav.tsx`):
+  - Dark gradient rail with `aria-current="page"` active states. Below `lg` it becomes a modal drawer: toggle has `aria-expanded`/`aria-controls`, focus moves into the drawer and is trapped there, Escape/backdrop/link click close it, and focus returns to the toggle. There is also a skip link.
+  - Hard-coded "Sofia Lifestyle Store" / "Sofia Reyes" identity removed. Identity now comes from the signed-in user saved by `/api/auth/login` (`lib/merchant-identity.ts`, `components/merchant/use-merchant-identity.ts`): name, email, `Merchant #id` and merchant status. No store-name endpoint exists, so no store name is shown.
+  - Removed controls that did nothing: top-bar search, the notification bell with a fake unread dot, and the "Profile settings"/"Store preferences" menu items. The promo card was also removed. Sign out still works.
+- **AuthGuard**: now reads auth through `useSyncExternalStore`, which fixes the React #418 hydration mismatch on every authenticated route. Redirect behaviour is unchanged.
+- **Dashboard**: the layout follows reference (1). No dashboard analytics endpoint exists, so every mock section has a "Sample" badge and a page-level notice saying so. Quick actions are links to existing routes. Removed the "Export report", per-item "Reorder" and period/metric selects, which had no handlers. The greeting uses the authenticated user's first name.
+- **Customers and reports pages**: when `useResourceQuery` falls back to mock data (detected by reference equality with the mock object), the page shows a "Sample preview" badge and notice instead of presenting the figures as live.
+- **Registration** (`components/auth/merchant-registration-form.tsx`, `components/stepper-nav.tsx`):
+  - Gradient onboarding rail with logo and a vertical step list on desktop; a compact header on mobile.
+  - Horizontal progress tracker from `md` up, and a labelled `progressbar` on small screens.
+  - White rounded form panel; tight 2-column labelled fields grouped under section headings.
+  - Upload drop zones: native file inputs stay keyboard-focusable, have labels, hints and error `aria-describedby`. The selected file name is shown, plus logo (square), banner (wide) and ID preview cards.
+  - Review cards have "Edit" buttons that jump back to a step.
+  - Invalid "Next Step" now focuses the first invalid field, and each new step focuses its heading.
+  - Placeholders no longer use sample store names.
+  - Unchanged: Zod schema, step field groups, the `/api/merchant/register` multipart payload (`buildMerchantRegistrationFormData`), 422/409/401/403/network error mapping and the signed-in merchant check.
+
+### API preservation
+No API client, hook, type or endpoint changed. These pages were not edited and keep their real `/api/v1` integration: products, categories, inventory, orders, payments, transactions and refunds. They only pick up the shared shell/primitive styling. This avoids conflicts with the separate, still-active merchant catalog/finance integration task; none of that task's work is claimed as merged here. Admin UI code was not edited; it only inherits the shared primitive and base-layer polish.
+
+### Omitted modules (not invented)
+There are no store profile, settings, or promotions/voucher routes or APIs in this frontend, so no screens or nav entries were added for them.
+
+### Changed files
+`tailwind.config.ts`, `app/globals.css`, `app/(dashboard)/layout.tsx`, `app/(dashboard)/dashboard/page.tsx`, `app/(dashboard)/sales/customers/page.tsx`, `app/(dashboard)/reports/{sales,customers,products,inventory}/page.tsx`, `components/auth/auth-guard.tsx`, `components/auth/merchant-registration-form.tsx`, `components/stepper-nav.tsx`, `components/sidebar.tsx`, `components/top-nav.tsx`, `components/data-table.tsx`, `components/metric-card.tsx`, `components/resource-page.tsx`, `components/report-page.tsx`, `components/ui/{button,card,input,label,textarea}.tsx`, new `components/merchant/{merchant-shell.tsx,page-intro.tsx,use-merchant-identity.ts}`, new `lib/merchant-identity.ts`, new `tests/merchant-identity.test.mjs`, `package.json` (adds that test to `test:unit`).
+
+### Verification
+- `npm ci`, `npm run lint`, `npx tsc --noEmit`, `npm run build`: all passed.
+- `npm run test:unit`: 26/26 passed, including the new identity/nav-active tests.
+- `npm run test:smoke`: passed.
+- Headless Chromium against `next start` at 1440×900, 820×1100 and 390×844:
+  - Registration: steps 1→2 validated with real field input and an uploaded file. Invalid Next focuses `#storeName`.
+  - All 12 merchant routes: no horizontal overflow at any width, and no page errors after the AuthGuard fix.
+  - Drawer: on tablet/mobile it opens with focus on its close button and `aria-expanded=true`. Escape closes it and returns focus to the toggle.
+  - Exactly one `aria-current="page"` nav item per route.
+- Environment limits: no Laravel backend was reachable, so authenticated pages were checked with a fake stored session. API-backed pages showed their real error states, not data. The Playwright MCP browser was unavailable, so a local Playwright install in `/tmp` was used for screenshots.
+
+
 ## Scope of this update: merchant resource API integration
 
 The backend contract was inspected at `ryanrey08/sofiacart-backend` commit `7437acf` (`routes/api.php`, `app/Http/Controllers/Api/*Controller.php`, `app/Http/Resources/*Resource.php`, `app/Http/Requests/*Request.php`, enums and `Controller::pageSize`). These routes require `auth:sanctum`, derive merchant ownership from the authenticated user, and return `{ data: [...], links, meta: { current_page, last_page, per_page, total } }` for lists. `page` selects the page; `per_page` is capped at 100. Single category writes return `{ data: CategoryResource }`; category deletion returns 204.

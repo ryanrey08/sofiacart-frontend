@@ -114,7 +114,7 @@ export function ResourcePage<T extends object>({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={meta ? "Search this page" : "Search records"}
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
             />
           </div>
           {statusFilterEnabled ? <><label htmlFor={statusId} className="sr-only">
@@ -124,7 +124,7 @@ export function ResourcePage<T extends object>({
             id={statusId}
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
+            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
           >
             <option value="all">All statuses</option>
             <option value="active">Active only</option>

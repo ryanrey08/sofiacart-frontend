@@ -140,7 +140,7 @@ const options = {
   idTypes: ["Passport", "Driver's License", "UMID", "PhilSys ID", "Postal ID"],
 };
 
-const selectClass = "h-10 w-full rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200";
+const selectClass = "h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200";
 
 function errorId(name: string) {
   return `${name}-error`;
@@ -567,7 +567,7 @@ export function MerchantRegistrationForm() {
                     {renderInput("storeName", "Store Name", { placeholder: "Your store name" })}
                     <div>
                       <Label htmlFor="storeSlug">Store URL / Slug</Label>
-                      <div className={cn("flex h-10 items-stretch overflow-hidden rounded-xl border bg-white focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-200", errors.storeSlug ? "border-red-400" : "border-slate-200")}>
+                      <div className={cn("flex h-10 items-stretch overflow-hidden rounded-lg border bg-white focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-200", errors.storeSlug ? "border-red-400" : "border-slate-200")}>
                         <span aria-hidden="true" className="flex items-center border-r border-slate-200 bg-[#f6f5fb] px-3 text-xs text-slate-500">sofiacart.shop/</span>
                         <input
                           id="storeSlug"
