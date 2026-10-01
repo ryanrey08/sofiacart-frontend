@@ -1,4 +1,14 @@
-import type { MerchantOrder, MerchantOrderStatus, ReturnRequestResource, ReturnStatus } from "../types/commerce";
+import type { MerchantOrder, MerchantOrderStatus, OrderItemResource, ReturnRequestResource, ReturnStatus } from "../types/commerce";
+
+/** Presets offered by the return wizard. "Other" switches the form to a free-text reason. */
+export const returnReasons = [
+  "Defective / Not Working",
+  "Wrong Item",
+  "Wrong Size",
+  "Changed Mind",
+  "Too Small",
+  "Other",
+] as const;
 
 export const orderTransitions: Record<MerchantOrderStatus, MerchantOrderStatus[]> = {
   pending: ["processing", "cancelled"],
@@ -35,6 +45,51 @@ export function remainingReturnQuantity(orderItemId: number, ordered: number, re
   return Math.max(0, ordered - requests.filter((request) => request.status !== "rejected")
     .flatMap((request) => request.items).filter((item) => item.order_item_id === orderItemId)
     .reduce((sum, item) => sum + item.quantity, 0));
+}
+
+/** Keeps a typed return quantity a whole number inside `[0, max]`. */
+export function clampReturnQuantity(value: number, max: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(Math.max(0, Math.floor(value)), Math.max(0, Math.floor(max)));
+}
+
+/**
+ * Client-side preview only: the backend recalculates the authoritative return amount from the stored
+ * order item totals, so this is derived from the line total to stay consistent with order discounts.
+ */
+export function estimatedReturnAmount(item: Pick<OrderItemResource, "quantity" | "total_price">, quantity: number) {
+  const total = Number(item.total_price);
+  if (!Number.isFinite(total) || item.quantity <= 0) return 0;
+  return Math.round((total / item.quantity) * quantity * 100) / 100;
+}
+
+export type TimelineState = "done" | "current" | "upcoming" | "cancelled";
+
+/**
+ * The order resource only timestamps `ordered_at`, so later milestones are derived from the current
+ * status/payment status and intentionally render without an invented timestamp.
+ */
+export function orderTimeline(order: MerchantOrder): Array<{ key: string; label: string; state: TimelineState; at: string | null }> {
+  if (order.status === "cancelled") {
+    return [
+      { key: "placed", label: "Order placed", state: "done", at: order.ordered_at },
+      { key: "cancelled", label: "Order cancelled", state: "cancelled", at: null },
+    ];
+  }
+  const paid = ["paid", "partially_refunded", "refunded"].includes(order.payment_status);
+  const processing = order.status === "processing" || order.status === "completed";
+  const completed = order.status === "completed";
+  const steps: Array<{ key: string; label: string; done: boolean; at: string | null }> = [
+    { key: "placed", label: "Order placed", done: true, at: order.ordered_at },
+    { key: "paid", label: "Payment confirmed", done: paid, at: null },
+    { key: "processing", label: "Order processing", done: processing, at: null },
+    { key: "completed", label: "Completed", done: completed, at: null },
+  ];
+  const current = steps.findIndex((step) => !step.done);
+  return steps.map((step, index) => ({
+    key: step.key, label: step.label, at: step.at,
+    state: step.done ? "done" : index === current ? "current" : "upcoming",
+  }));
 }
 
 export function validateEvidence(files: File[]) {
