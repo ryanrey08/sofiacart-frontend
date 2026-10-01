@@ -151,8 +151,8 @@ export function customerToFormValues(customer: CustomerResource): CustomerFormVa
   const address = defaultCustomerAddress(customer);
   const structured = address && typeof address === "object" ? address : null;
   return {
-    firstName: customer.first_name ?? fallback.firstName,
-    lastName: customer.last_name ?? fallback.lastName,
+    firstName: customer.first_name?.trim() || fallback.firstName,
+    lastName: customer.last_name?.trim() || fallback.lastName,
     email: customer.email ?? "",
     phone: customer.phone ?? "",
     birthday: customer.birthday ? customer.birthday.slice(0, 10) : "",

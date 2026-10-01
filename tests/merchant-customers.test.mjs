@@ -125,6 +125,9 @@ test("resources map back to form values for both the legacy and the extended API
   assert.equal(values.street, "9 Rizal Ave");
   assert.equal(values.city, "Makati");
   assert.equal(values.tags, "vip, manila");
+  const blankNames = customerToFormValues({ ...legacy, first_name: "", last_name: "  " });
+  assert.equal(blankNames.firstName, "Maria");
+  assert.equal(blankNames.lastName, "Santos");
 });
 
 test("addresses render from the structured object or the legacy string", () => {

@@ -233,7 +233,7 @@ export function CustomerDetailsPanel({
                 <InfoRow label="Name" value={name} />
                 <InfoRow label="Email" value={customer.email ?? "—"} />
                 <InfoRow label="Phone" value={customer.phone ?? "—"} />
-                <InfoRow label="Birthday" value={customer.birthday ? formatDateTime(customer.birthday).split(",")[0] : "—"} />
+                <InfoRow label="Birthday" value={formatBirthday(customer.birthday)} />
                 <InfoRow label="Gender" value={customer.gender ? humanize(customer.gender) : "—"} />
                 <InfoRow label="TIN" value={customer.tin ?? "—"} />
                 <InfoRow label="Customer Type" value={<CustomerTypeBadge type={customer.customer_type} />} />
@@ -322,6 +322,14 @@ export function CustomerDetailsPanel({
       </Card>
     </div>
   );
+}
+
+/** Birthdays carry no time component, so they are rendered as a date only. */
+function formatBirthday(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-PH", { dateStyle: "medium" }).format(date);
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
