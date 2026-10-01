@@ -1,25 +1,32 @@
 "use client";
+import { useState } from "react";
 import { ResourcePage } from "@/components/resource-page";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusPill } from "@/components/admin/ui";
 import { useTransactions } from "@/lib/hooks/transactions";
-import { mockTransactions } from "@/lib/mocks";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import type { Transaction } from "@/types";
+import { formatDateTime, formatMoney } from "@/lib/admin/format";
+import type { AdminTransaction } from "@/types/admin";
 
 export default function TransactionsPage() {
-  const { data = mockTransactions } = useTransactions();
+  const [page, setPage] = useState(1);
+  const transactions = useTransactions(page);
   return (
-    <ResourcePage<Transaction>
+    <ResourcePage<AdminTransaction>
       title="Transactions"
-      description="Review settlements, adjustments, and payout transactions for your merchants."
-      data={data}
+      description="Review your store's payment transactions."
+      data={transactions.data?.data ?? []}
+      loading={transactions.isPending}
+      error={transactions.isError ? transactions.error : null}
+      onRetry={() => void transactions.refetch()}
+      meta={transactions.data?.meta}
+      onPageChange={setPage}
+      statusFilterEnabled={false}
       searchKeys={["reference", "type", "status"]}
       columns={[
         { key: "reference", header: "Reference", sortable: true },
         { key: "type", header: "Type", sortable: true },
-        { key: "amount", header: "Amount", sortable: true, render: (transaction) => formatCurrency(transaction.amount) },
-        { key: "date", header: "Date", sortable: true, render: (transaction) => formatDate(transaction.date) },
-        { key: "status", header: "Status", render: (transaction) => <StatusBadge status={transaction.status} /> },
+        { key: "amount", header: "Amount", render: (transaction) => formatMoney(transaction.amount) },
+        { key: "transacted_at", header: "Date", render: (transaction) => formatDateTime(transaction.transacted_at) },
+        { key: "status", header: "Status", render: (transaction) => <StatusPill status={transaction.status} /> },
       ]}
     />
   );

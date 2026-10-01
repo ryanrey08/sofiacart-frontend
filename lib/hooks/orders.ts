@@ -1,5 +1,4 @@
 "use client";
-import { mockOrders } from "@/lib/mocks";
-import { useResourceQuery } from "@/lib/hooks/use-resource-query";
-import type { Order } from "@/types";
-export function useOrders() { return useResourceQuery<Order[]>(["orders"], "/api/v1/orders", mockOrders); }
+import { useMerchantList } from "@/lib/hooks/merchant-list";
+import type { AdminOrder } from "@/types/admin";
+export function useOrders(page: number) { return useMerchantList<AdminOrder>("orders", page); }

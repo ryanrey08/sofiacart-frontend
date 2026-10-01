@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { EmptyState, ErrorState, LoadingState, Pagination } from "@/components/admin/ui";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function ResourcePage<T extends object>({
@@ -11,12 +12,26 @@ export function ResourcePage<T extends object>({
   data,
   columns,
   searchKeys,
+  loading = false,
+  error,
+  onRetry,
+  meta,
+  onPageChange,
+  statusFilterEnabled = true,
+  actions,
 }: {
   title: string;
   description: string;
   data: T[];
   columns: DataTableColumn<T>[];
   searchKeys: (keyof T)[];
+  loading?: boolean;
+  error?: unknown;
+  onRetry?: () => void;
+  meta?: { current_page: number; last_page: number; total: number };
+  onPageChange?: (page: number) => void;
+  statusFilterEnabled?: boolean;
+  actions?: ReactNode;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -67,6 +82,7 @@ export function ResourcePage<T extends object>({
           <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
+        {actions}
         <Card className="border-none bg-white/80">
           <CardContent className="flex items-center gap-3 p-3">
             <div className="relative min-w-72">
@@ -74,11 +90,11 @@ export function ResourcePage<T extends object>({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search records"
+                placeholder={meta ? "Search this page" : "Search records"}
                 className="h-11 w-full rounded-xl border border-border bg-white pl-10 pr-4 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
               />
             </div>
-            <label htmlFor="status-filter" className="sr-only">
+            {statusFilterEnabled ? <><label htmlFor="status-filter" className="sr-only">
               Filter records by status
             </label>
             <select
@@ -90,11 +106,14 @@ export function ResourcePage<T extends object>({
               <option value="all">All statuses</option>
               <option value="active">Active only</option>
               <option value="attention">Needs attention</option>
-            </select>
+            </select></> : null}
           </CardContent>
         </Card>
       </div>
-      <DataTable key={tableKey} data={filteredData} columns={columns} pageSize={6} />
+      {loading ? <LoadingState /> : error ? <ErrorState error={error} onRetry={onRetry} /> :
+        filteredData.length === 0 ? <EmptyState /> :
+        <DataTable key={tableKey} data={filteredData} columns={columns} pageSize={meta ? 15 : 6} />}
+      {!loading && !error && meta && onPageChange ? <Pagination meta={meta} onPageChange={onPageChange} /> : null}
     </div>
   );
 }

@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
             <TopNav />
             <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Scaffold preview: dashboard overview uses sample data; management and reports may show sample data when the API is unavailable. Backend integration has not been verified.
+              Dashboard overview, customers and reports may use sample data. Product, category, inventory, order and finance pages require the merchant API and show errors when it is unavailable.
             </p>
             <main>{children}</main>
           </div>

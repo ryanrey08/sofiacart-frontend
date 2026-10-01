@@ -3,6 +3,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api/axios";
 import { buildInventoryAdjustPayload, buildProductFormData } from "@/lib/merchant-products";
+import { merchantPage } from "@/lib/merchant-resource";
 import type { ValidatedInventoryAdjust, ValidatedProductForm } from "@/lib/validation/product";
 import type { CategoryResource, InventoryAdjustResponse, InventoryLogResource, Paginated, ProductResource, ProductStatus } from "@/types";
 
@@ -39,8 +40,15 @@ export function useProduct(id: number | null) {
 export function useProductCategories() {
   return useQuery({
     queryKey: ["merchant", "categories", "options"],
-    queryFn: async () =>
-      (await api.get<Paginated<CategoryResource>>("/api/v1/categories", { params: { per_page: 100 } })).data,
+    queryFn: async () => {
+      const first = merchantPage((await api.get<Paginated<CategoryResource>>("/api/v1/categories", { params: { per_page: 100 } })).data);
+      const data = [...first.data];
+      for (let page = 2; page <= first.meta.last_page; page++) {
+        const next = merchantPage((await api.get<Paginated<CategoryResource>>("/api/v1/categories", { params: { per_page: 100, page } })).data);
+        data.push(...next.data);
+      }
+      return { ...first, data };
+    },
     staleTime: 0,
   });
 }
@@ -106,9 +114,13 @@ export function useDeleteProduct() {
 
 export function useAdjustInventory(productId: number) {
   const sync = useProductCacheSync();
+  const client = useQueryClient();
   return useMutation({
     mutationFn: async (values: ValidatedInventoryAdjust) =>
       (await api.post<InventoryAdjustResponse>("/api/v1/inventory/adjust", buildInventoryAdjustPayload(productId, values))).data,
-    onSuccess: (response) => sync(response.product),
+    onSuccess: async (response) => {
+      await sync(response.product);
+      await client.invalidateQueries({ queryKey: ["merchant", "inventory/logs"] });
+    },
   });
 }
