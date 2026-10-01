@@ -1,9 +1,20 @@
+"use client";
+
 import Link from "next/link";
-import { Boxes, ChartColumn, CreditCard, LayoutDashboard, Package, RefreshCcw, ShoppingCart, Tags, Users } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { ArrowLeftRight, Boxes, ChartColumn, CreditCard, LayoutDashboard, Package, ReceiptText, RotateCcw, ShoppingCart, Tags, Users, X } from "lucide-react";
+import { useMerchantIdentity } from "@/components/merchant/use-merchant-identity";
+import { isNavItemActive } from "@/lib/merchant-identity";
 import { cn } from "@/lib/utils";
 
+// Only routes that exist under app/(dashboard) are listed. Store profile, settings and
+// promotions/vouchers modules do not exist in this frontend yet, so they are intentionally omitted.
 const sections = [
+  {
+    title: "Overview",
+    items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
   {
     title: "Sales",
     items: [
@@ -18,8 +29,8 @@ const sections = [
     title: "Finance",
     items: [
       { href: "/finance/payments", label: "Payments", icon: CreditCard },
-      { href: "/finance/transactions", label: "Transactions", icon: RefreshCcw },
-      { href: "/finance/refunds", label: "Refunds", icon: RefreshCcw },
+      { href: "/finance/transactions", label: "Transactions", icon: ArrowLeftRight },
+      { href: "/finance/refunds", label: "Refunds", icon: RotateCcw },
     ],
   },
   {
@@ -27,60 +38,143 @@ const sections = [
     items: [
       { href: "/reports/sales", label: "Sales Reports", icon: ChartColumn },
       { href: "/reports/customers", label: "Customer Reports", icon: Users },
-      { href: "/reports/products", label: "Product Reports", icon: Package },
+      { href: "/reports/products", label: "Product Reports", icon: ReceiptText },
       { href: "/reports/inventory", label: "Inventory Reports", icon: Boxes },
     ],
   },
 ];
 
-export function Sidebar() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const identity = useMerchantIdentity();
+
   return (
-    <aside className="sticky top-0 hidden h-screen w-80 shrink-0 flex-col border-r border-white/60 bg-white/80 px-5 py-6 backdrop-blur xl:flex">
-      <Link href="/dashboard" className="rounded-2xl bg-brand-gradient p-5 text-white shadow-soft">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-lg font-bold">SC</div>
-          <div>
-            <p className="text-lg font-semibold">SofiaCart</p>
-            <p className="text-sm text-white/80">Merchant command center</p>
-          </div>
-        </div>
-        <div className="mt-5 rounded-2xl border border-white/15 bg-white/10 p-4 text-sm">
-          <p className="font-semibold">Sofia Lifestyle Store</p>
-          <p className="mt-1 text-white/80">Status: Active Merchant</p>
-          <p className="text-white/80">sofiacart.shop/sofia-lifestyle</p>
-        </div>
+    <>
+      <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-3 rounded-xl px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunset-300">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sunset-500 to-brand-500 text-base font-bold text-white shadow-lg shadow-black/20">SC</span>
+        <span>
+          <span className="block text-lg font-bold leading-tight text-white">SofiaCart</span>
+          <span className="block text-xs text-white/60">Merchant Center</span>
+        </span>
       </Link>
 
-      <nav className="mt-6 flex-1 space-y-6 overflow-y-auto pr-1">
-        <Link href="/dashboard" className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3 font-semibold text-brand-700">
-          <LayoutDashboard className="h-5 w-5" />
-          Dashboard Overview
-        </Link>
+      <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.07] p-3">
+        <div className="flex items-center gap-3">
+          <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-brand-700">{identity.initials}</span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">{identity.displayName}</p>
+            <p className="truncate text-xs text-white/60">{identity.merchantLabel}</p>
+          </div>
+        </div>
+        {identity.statusLabel ? (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/85">
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sunset-500" />
+            Status: {identity.statusLabel}
+          </p>
+        ) : null}
+      </div>
+
+      <nav aria-label="Merchant navigation" className="-mx-1 mt-6 flex-1 space-y-5 overflow-y-auto px-1 pb-4">
         {sections.map((section) => (
           <div key={section.title}>
-            <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{section.title}</p>
-            <div className="space-y-1">
+            <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">{section.title}</p>
+            <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon;
+                const active = isNavItemActive(pathname, item.href);
                 return (
-                  <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-brand-50 hover:text-brand-700")}>
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunset-300",
+                        active ? "bg-white text-brand-800 shadow-lg shadow-black/10" : "text-white/70 hover:bg-white/10 hover:text-white",
+                      )}
+                    >
+                      {active ? <span aria-hidden="true" className="absolute -left-1 top-2 bottom-2 w-1 rounded-full bg-sunset-500" /> : null}
+                      <Icon aria-hidden="true" className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : "")} />
+                      {item.label}
+                    </Link>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </div>
         ))}
       </nav>
+    </>
+  );
+}
 
-      <Card className="border-none bg-brand-gradient text-white">
-        <CardContent className="p-5">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/80">Promo</p>
-          <h3 className="mt-3 text-xl font-semibold">Boost holiday sales</h3>
-          <p className="mt-2 text-sm text-white/80">Launch time-limited discounts, track inventory, and keep your merchants ahead of the rush.</p>
-        </CardContent>
-      </Card>
+export function Sidebar() {
+  return (
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-brand-rail px-4 py-6 lg:flex">
+      <SidebarContent />
     </aside>
+  );
+}
+
+export function MobileSidebar({ open, onClose, id }: { open: boolean; onClose: () => void; id: string }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panelRef.current?.querySelector<HTMLElement>("a, button")?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !panelRef.current) return;
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])"));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <div aria-hidden="true" className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        id={id}
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Merchant navigation menu"
+        className="relative flex h-full w-[min(18rem,85vw)] flex-col bg-brand-rail px-4 py-6 shadow-2xl"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close navigation menu"
+          className="absolute right-3 top-3 rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunset-300"
+        >
+          <X aria-hidden="true" className="h-5 w-5" />
+        </button>
+        <SidebarContent onNavigate={onClose} />
+      </div>
+    </div>
   );
 }

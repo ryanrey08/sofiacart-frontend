@@ -13,6 +13,7 @@ export default function CustomerReportPage() {
       title="Customer Reports"
       description="Understand growth, repeat purchase behaviour, and customer value."
       report={report}
+      isSample={report === mockReports.customers}
       columns={[
         { key: "customer", header: "Customer" },
         { key: "orders", header: "Orders" },

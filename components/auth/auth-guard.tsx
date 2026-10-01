@@ -1,23 +1,36 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getStoredAuth } from "@/lib/auth";
+import { AUTH_CHANGE_EVENT, getStoredAuth } from "@/lib/auth";
+
+function subscribe(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(AUTH_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(AUTH_CHANGE_EVENT, onChange);
+  };
+}
+
+function getAuthSnapshot(): boolean {
+  return getStoredAuth() !== null;
+}
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const auth = getStoredAuth();
+  const isAuthenticated = useSyncExternalStore<boolean | undefined>(subscribe, getAuthSnapshot, () => undefined); // undefined during SSR/hydration keeps markup identical
 
   useEffect(() => {
-    if (!auth) {
+    if (isAuthenticated === false) {
       const redirect = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
       router.replace(`/login${redirect}`);
     }
-  }, [auth, pathname, router]);
+  }, [isAuthenticated, pathname, router]);
 
-  if (!auth) {
+  if (!isAuthenticated) {
     return null;
   }
 

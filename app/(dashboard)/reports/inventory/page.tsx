@@ -13,6 +13,7 @@ export default function InventoryReportPage() {
       title="Inventory Reports"
       description="Keep tabs on low-stock alerts, out-of-stock SKUs, and replenishment health."
       report={report}
+      isSample={report === mockReports.inventory}
       columns={[
         { key: "product", header: "Product" },
         { key: "stock", header: "Stock" },

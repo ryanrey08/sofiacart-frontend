@@ -61,6 +61,12 @@ const config: Config = {
           800: "#501cac",
           900: "#43198b",
         },
+        navy: {
+          700: "#2a2257",
+          800: "#1f1846",
+          900: "#160f35",
+          950: "#0e0a26",
+        },
         sunset: {
           100: "#fff2e8",
           300: "#ffbb8a",
@@ -72,6 +78,8 @@ const config: Config = {
       backgroundImage: {
         "brand-gradient": "linear-gradient(135deg, #7c3aed 0%, #925cff 50%, #ff8f3d 100%)",
         "brand-soft": "linear-gradient(180deg, rgba(124,58,237,0.18) 0%, rgba(255,143,61,0.08) 100%)",
+        "brand-rail": "linear-gradient(180deg, #2b1466 0%, #3b1a8a 45%, #1f1846 100%)",
+        "brand-cta": "linear-gradient(90deg, #7c3aed 0%, #6422d0 100%)",
       },
       borderRadius: {
         xl: "1rem",
@@ -79,6 +87,7 @@ const config: Config = {
       },
       boxShadow: {
         soft: "0 20px 45px -24px rgba(76, 29, 149, 0.35)",
+        card: "0 1px 2px rgba(22, 15, 53, 0.04), 0 8px 24px -16px rgba(22, 15, 53, 0.18)",
       },
     },
   },

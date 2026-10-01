@@ -13,6 +13,7 @@ export default function ProductReportPage() {
       title="Product Reports"
       description="Compare category performance, sell-through, and product velocity."
       report={report}
+      isSample={report === mockReports.products}
       columns={[
         { key: "product", header: "Product" },
         { key: "sales", header: "Sales" },

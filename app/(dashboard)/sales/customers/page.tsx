@@ -13,6 +13,7 @@ export default function CustomersPage() {
       title="Customers"
       description="Review customer engagement, lifetime value, and order frequency."
       data={data}
+      isSample={data === mockCustomers}
       searchKeys={["name", "email", "phone", "status"]}
       columns={[
         { key: "name", header: "Customer", sortable: true },

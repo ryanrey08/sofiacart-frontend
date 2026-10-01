@@ -3,6 +3,8 @@ import type { AuthResponse } from "@/types";
 const AUTH_USER_STORAGE_KEY = "sofiacart-auth-user";
 const AUTH_TOKEN_STORAGE_KEY = "sofiacart-auth-token";
 let authToken: string | null = null;
+/** Dispatched on `window` when auth is written or cleared in this tab (`storage` only fires in other tabs). */
+export const AUTH_CHANGE_EVENT = "sofiacart-auth-change";
 
 export function getStoredAuth(): AuthResponse | null {
   if (typeof window === "undefined") return null;
@@ -36,6 +38,7 @@ export function setStoredAuth(payload: AuthResponse) {
   authToken = payload.token;
   window.sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.token);
   window.localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(payload.user));
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export function clearStoredAuth() {
@@ -43,4 +46,5 @@ export function clearStoredAuth() {
   authToken = null;
   window.sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   window.localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
