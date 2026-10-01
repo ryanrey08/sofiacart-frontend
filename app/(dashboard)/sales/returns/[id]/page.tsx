@@ -51,6 +51,7 @@ export default function ReturnDetailPage() {
       {data.notes && <p className="whitespace-pre-wrap">Notes: {data.notes}</p>}
       <p>Return amount (server-calculated): {formatMoney(data.amount)}</p>
       {data.refund_id && <p>Linked processed refund: #{data.refund_id}</p>}
+      {(data.status === "processed" || data.status === "rejected") && <Notice tone="info">This return request is {humanize(data.status).toLowerCase()} and can no longer be changed.</Notice>}
       <div className="flex flex-wrap gap-2">{returnTransitions[data.status].filter((status): status is "approved" | "rejected" => status === "approved" || status === "rejected").map((status) =>
         <Button key={status} variant="outline" disabled={change.isPending} onClick={() => void transition(status)}>{humanize(status)}</Button>)}</div>
       {data.status === "approved" && <div className="space-y-3">

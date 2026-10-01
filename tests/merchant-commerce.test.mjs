@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  allowedOrderTransitions, buildOrderPayload, buildReturnFormData, remainingReturnQuantity,
-  returnEligible, returnStateEligible, returnTransitions, validateEvidence,
+  allowedOrderTransitions, buildOrderPayload, buildReturnFormData, clampReturnQuantity,
+  estimatedReturnAmount, orderTimeline, remainingReturnQuantity, returnEligible, returnReasons,
+  returnStateEligible, returnTransitions, validateEvidence,
 } from "../lib/merchant-commerce.ts";
 import { merchantPage } from "../lib/merchant-resource.ts";
 
@@ -59,6 +60,28 @@ test("return multipart matches Laravel's nested items and evidence arrays", () =
   assert.match(validateEvidence(Array(6).fill(file)), /five/);
   assert.match(validateEvidence([new File(["x"], "x.pdf", { type: "application/pdf" })]), /JPG/);
   assert.match(validateEvidence([new File([new Uint8Array(5120 * 1024 + 1)], "huge.png", { type: "image/png" })]), /5 MB/);
+});
+
+test("the return wizard clamps quantities and estimates line amounts from order totals", () => {
+  assert.deepEqual([...returnReasons], ["Defective / Not Working", "Wrong Item", "Wrong Size", "Changed Mind", "Too Small", "Other"]);
+  assert.equal(clampReturnQuantity(-2, 3), 0);
+  assert.equal(clampReturnQuantity(5, 3), 3);
+  assert.equal(clampReturnQuantity(1.7, 3), 1);
+  assert.equal(clampReturnQuantity(Number.NaN, 3), 0);
+  assert.equal(clampReturnQuantity(2, -1), 0);
+  assert.equal(estimatedReturnAmount({ quantity: 3, total_price: "90.00" }, 2), 60);
+  assert.equal(estimatedReturnAmount({ quantity: 0, total_price: "90.00" }, 2), 0);
+  assert.equal(estimatedReturnAmount({ quantity: 3, total_price: null }, 2), 0);
+});
+
+test("the order timeline is derived from status and never invents timestamps", () => {
+  assert.deepEqual(orderTimeline({ ...order, status: "pending", payment_status: "unpaid" }).map((step) => step.state),
+    ["done", "current", "upcoming", "upcoming"]);
+  assert.deepEqual(orderTimeline({ ...order, status: "processing" }).map((step) => step.state),
+    ["done", "done", "done", "current"]);
+  assert.deepEqual(orderTimeline(order).map((step) => step.state), ["done", "done", "done", "done"]);
+  assert.deepEqual(orderTimeline({ ...order, status: "cancelled" }).map((step) => step.key), ["placed", "cancelled"]);
+  assert.deepEqual(orderTimeline(order).map((step) => step.at), [order.ordered_at, null, null, null]);
 });
 
 test("merchant lists preserve empty paginated envelopes", () => {
