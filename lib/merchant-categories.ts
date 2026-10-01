@@ -53,11 +53,18 @@ export interface CategoryListParams {
   search?: string;
   status?: CategoryStatusFilter;
   parent_id?: number;
-  sort?: CategorySortField;
-  direction?: CategorySortDirection;
+  sort?: CategorySortParam;
 }
 
-// `GET /api/v1/categories?search=&status=active|inactive&parent_id=&sort=name|products_count|created_at&direction=asc|desc&page=&per_page=`
+export type CategorySortParam = "name_asc" | "name_desc" | "products_asc" | "products_desc" | "oldest" | "newest";
+
+const CATEGORY_SORT_PARAMS: Record<CategorySortField, Record<CategorySortDirection, CategorySortParam>> = {
+  name: { asc: "name_asc", desc: "name_desc" },
+  products_count: { asc: "products_asc", desc: "products_desc" },
+  created_at: { asc: "oldest", desc: "newest" },
+};
+
+// `GET /api/v1/categories?search=&status=active|inactive&parent_id=&sort=name_asc|name_desc|products_asc|products_desc|oldest|newest&page=&per_page=`
 export function buildCategoryListParams(filters: CategoryListFilters): CategoryListParams {
   const params: CategoryListParams = { page: Math.max(1, filters.page ?? 1), per_page: filters.perPage ?? 10 };
   const search = filters.search?.trim();
@@ -65,8 +72,7 @@ export function buildCategoryListParams(filters: CategoryListFilters): CategoryL
   if (filters.status) params.status = filters.status;
   if (filters.parentId) params.parent_id = filters.parentId;
   if (filters.sort) {
-    params.sort = filters.sort;
-    params.direction = filters.direction ?? "asc";
+    params.sort = CATEGORY_SORT_PARAMS[filters.sort][filters.direction ?? "asc"];
   }
   return params;
 }
@@ -136,8 +142,8 @@ export function isCategoryActive(category: Pick<CategoryResource, "is_active">) 
   return category.is_active ?? true;
 }
 
-export function categoryImagePath(category: Pick<CategoryResource, "image" | "image_url">) {
-  return category.image_url || category.image || null;
+export function categoryImagePath(category: Pick<CategoryResource, "image_path" | "image_url">) {
+  return category.image_url || category.image_path || null;
 }
 
 // Accepts `{ data: { … } }` or a bare stats object; missing counts become 0.

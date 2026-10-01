@@ -8,7 +8,7 @@ export function CategoryThumb({
   category,
   className,
 }: {
-  category: Pick<CategoryResource, "name" | "image" | "image_url">;
+  category: Pick<CategoryResource, "name" | "image_path" | "image_url">;
   className?: string;
 }) {
   const path = categoryImagePath(category);

@@ -79,6 +79,7 @@ export function ImageDropzone({
         type="file"
         accept={CATEGORY_IMAGE_TYPES.join(",")}
         className="sr-only"
+        aria-hidden="true"
         tabIndex={-1}
         disabled={disabled}
         onChange={(event) => {

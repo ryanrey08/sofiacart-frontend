@@ -360,7 +360,7 @@ export function CategoryForm({
                 <img src={imageUrl} alt="" className="aspect-[3/2] w-full object-cover" />
               ) : (
                 <CategoryThumb
-                  category={{ name: name || "Category", image: savedCategory?.image, image_url: savedCategory?.image_url }}
+                  category={{ name: name || "Category", image_path: savedCategory?.image_path, image_url: savedCategory?.image_url }}
                   className="aspect-[3/2] h-auto w-full rounded-none"
                 />
               )}

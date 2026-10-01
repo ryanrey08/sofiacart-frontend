@@ -236,7 +236,7 @@ export interface CategoryResource {
   parent_id?: number | null;
   parent?: { id: number; name: string; slug?: string } | null;
   sort_order?: number | null;
-  image?: string | null;
+  image_path?: string | null;
   image_url?: string | null;
   is_active?: boolean;
   show_in_nav?: boolean;

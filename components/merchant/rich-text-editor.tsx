@@ -88,6 +88,7 @@ export function RichTextEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || editor.innerHTML === value) return;
+    if (!value && !editor.textContent?.trim() && document.activeElement === editor) return;
     editor.innerHTML = sanitizeRichText(value);
   }, [value]);
 

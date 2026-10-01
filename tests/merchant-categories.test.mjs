@@ -22,12 +22,16 @@ function axiosError(status, data) {
   return new AxiosError("Request failed", "ERR_BAD_RESPONSE", undefined, undefined, { status, data, statusText: "", headers: {}, config: {} });
 }
 
-test("list params drop empty filters and pair sort with a direction", () => {
+test("list params drop empty filters and map sort + direction to the backend sort token", () => {
   assert.deepEqual(buildCategoryListParams({}), { page: 1, per_page: 10 });
   assert.deepEqual(
     buildCategoryListParams({ search: "  shoes ", status: "inactive", parentId: 4, sort: "products_count", direction: "desc", page: 3, perPage: 20 }),
-    { page: 3, per_page: 20, search: "shoes", status: "inactive", parent_id: 4, sort: "products_count", direction: "desc" },
+    { page: 3, per_page: 20, search: "shoes", status: "inactive", parent_id: 4, sort: "products_desc" },
   );
+  assert.equal(buildCategoryListParams({ sort: "name" }).sort, "name_asc");
+  assert.equal(buildCategoryListParams({ sort: "name", direction: "desc" }).sort, "name_desc");
+  assert.equal(buildCategoryListParams({ sort: "created_at", direction: "desc" }).sort, "newest");
+  assert.equal(buildCategoryListParams({ sort: "created_at", direction: "asc" }).sort, "oldest");
   assert.deepEqual(buildCategoryListParams({ search: "   ", status: "", parentId: null, page: 0 }), { page: 1, per_page: 10 });
 });
 
@@ -96,8 +100,8 @@ test("resources map back to form values with safe defaults", () => {
   assert.deepEqual(categoryToFormValues(legacy), { ...emptyCategoryFormValues, name: "Old", slug: "old" });
   assert.equal(isCategoryActive(legacy), true);
   assert.equal(isCategoryActive({ is_active: false }), false);
-  assert.equal(categoryImagePath({ image: "categories/a.png", image_url: null }), "categories/a.png");
-  assert.equal(categoryImagePath({ image: "categories/a.png", image_url: "https://cdn/a.png" }), "https://cdn/a.png");
+  assert.equal(categoryImagePath({ image_path: "categories/a.png", image_url: null }), "categories/a.png");
+  assert.equal(categoryImagePath({ image_path: "categories/a.png", image_url: "https://cdn/a.png" }), "https://cdn/a.png");
   assert.equal(
     categoryToFormValues({ ...legacy, parent_id: 5, sort_order: 2, is_active: false, show_in_nav: false, meta_title: "T" }).parentId,
     "5",
