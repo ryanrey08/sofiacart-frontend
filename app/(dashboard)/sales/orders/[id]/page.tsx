@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { AdminTable, ErrorState, LoadingState, Notice, StatusPill } from "@/components/admin/ui";
 import { PageIntro } from "@/components/merchant/page-intro";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatDateTime, formatMoney, humanize } from "@/lib/admin/format";
 import { parseApiError, fieldErrorList } from "@/lib/admin/errors";
 import { useChangeOrderStatus, useOrder } from "@/lib/hooks/orders";
@@ -47,11 +48,25 @@ export default function OrderDetailPage() {
         <Button variant="outline" onClick={() => window.print()}>Print</Button>
         {eligible && <Button asChild><Link href={`/sales/orders/${id}/return`}>Request return</Link></Button>}
       </div>} />
-    <div className="flex flex-wrap items-center gap-2">
-      <StatusPill status={data.status} />
-      <StatusPill status={data.payment_status} />
-      {data.inventory_restored && <span className="text-sm text-slate-600">Reserved inventory restored.</span>}
-    </div>
+    <section aria-label="Order summary" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <Card className="border-none bg-white/90 shadow-soft"><CardContent className="p-4">
+        <p className="text-sm text-slate-500">Order total</p>
+        <p className="mt-1 text-xl font-bold text-navy-900">{formatMoney(data.total_amount)}</p>
+      </CardContent></Card>
+      <Card className="border-none bg-white/90 shadow-soft"><CardContent className="p-4">
+        <p className="text-sm text-slate-500">Items</p>
+        <p className="mt-1 text-xl font-bold text-navy-900">{data.items.length} line{data.items.length === 1 ? "" : "s"} · {data.items.reduce((sum, item) => sum + item.quantity, 0)} units</p>
+      </CardContent></Card>
+      <Card className="border-none bg-white/90 shadow-soft"><CardContent className="p-4">
+        <p className="text-sm text-slate-500">Payment status</p>
+        <div className="mt-2"><StatusPill status={data.payment_status} /></div>
+      </CardContent></Card>
+      <Card className="border-none bg-white/90 shadow-soft"><CardContent className="p-4">
+        <p className="text-sm text-slate-500">Order status</p>
+        <div className="mt-2"><StatusPill status={data.status} /></div>
+      </CardContent></Card>
+    </section>
+    {data.inventory_restored && <p className="text-sm text-slate-600">Reserved inventory restored.</p>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {error && <Notice tone="error">{error.message}{fieldErrorList(error).map((message, index) => <p key={index}>{message}</p>)}</Notice>}
 
