@@ -45,6 +45,13 @@ test("built public routes render the landing, login, registration, and admin log
       assert.equal(response.status, 200, `${path} should render`);
       assert.match(await response.text(), new RegExp(expected));
     }
+    for (const path of [
+      "/sales/orders", "/sales/orders/new", "/sales/orders/1", "/sales/orders/1/return",
+      "/sales/returns", "/sales/returns/1", "/finance/refunds/new",
+    ]) {
+      const response = await fetch(`${baseUrl}${path}`, { redirect: "manual" });
+      assert.equal(response.status, 200, `${path} should be available behind the client auth guard`);
+    }
   } finally {
     server.kill();
   }

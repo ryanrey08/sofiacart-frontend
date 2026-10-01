@@ -36,7 +36,7 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
    npm run test:smoke
    ```
 
-6. Run the unit tests (admin RBAC, merchant registration and merchant products; no build required):
+6. Run the unit tests (admin RBAC, merchant registration, products, orders and returns; no build required):
 
    ```bash
    npm run test:unit
@@ -74,11 +74,13 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
 
 - `/sales/categories` lists, creates, edits and deletes merchant categories through `/api/v1/categories`. Category slugs must be globally unique. The backend has no category status, archive or parent/child fields; delete may be rejected when products reference a category.
 - `/sales/inventory` displays paginated `/api/v1/inventory/logs` (stock change, resulting quantity and reason). Adjust stock from `/sales/products` using `/api/v1/inventory/adjust`; there is no `/api/v1/inventory` list or reorder-threshold field.
-- `/sales/orders`, `/finance/payments`, `/finance/transactions` and `/finance/refunds` display merchant-scoped, paginated `/api/v1/{orders,payments,transactions,refunds}` resources. Search and sorting on these tables apply to the **current page**; use pagination to browse the rest. These pages show loading, empty and retryable API error states instead of fallback sample data. Payment metadata is never rendered.
-- Merchant order creation/payment processing/refund execution is **not offered** by these read-only pages: the backend currently trusts client-submitted order item prices and does not transactionally reserve/reduce stock on order creation or restore it on cancellation/refund. Do not treat a client-side flow as a safe checkout/payment implementation. See `SOFIACART_IMPLEMENTATION_STATUS.md` for the verified contract and outstanding work.
+- `/sales/orders` uses server-side search, status, payment status, date filters and pagination (`GET /api/v1/orders`). `/sales/orders/new` selects real customers (`GET /api/v1/customers`) and active products/variants (`GET /api/v1/products`), then submits only customer ID, product/variant IDs, quantities and optional notes (`POST /api/v1/orders`). The backend checks stock and calculates prices/totals. `/sales/orders/[id]` (`GET /api/v1/orders/{id}`) shows the server's order snapshot and allowed `PATCH /api/v1/orders/{id}/status` transitions. Payment status, prices and order items cannot be edited here; order deletion is unsupported.
+- `/sales/orders/[id]/return` creates a merchant/staff physical return for a completed paid or partially refunded order inside the backend return window (`POST /api/v1/return-requests`, multipart). The three steps select remaining item quantities, collect required reason and optional notes/evidence (up to five JPG/PNG/WebP images of 5 MB each), then review and submit. `/sales/returns` lists/filter/paginates (`GET /api/v1/return-requests`); `/sales/returns/[id]` loads details (`GET /api/v1/return-requests/{id}`), downloads private evidence with authenticated blob requests (`GET /api/v1/return-requests/{id}/evidence/{index}`) and permits only pending → approved/rejected and approved → processed (`PATCH /api/v1/return-requests/{id}`).
+- Positive-value returns require an **already processed** refund for the same order/payment and exact amount before processing; the server restores inventory on processing, not on refund recording. `/finance/refunds` lists financial refund records (`GET /api/v1/refunds`); `/finance/refunds/new` can record an externally completed refund (`POST /api/v1/refunds`), using matching payments from `GET /api/v1/payments`. This **does not execute a gateway refund** or create store credit. Payment metadata is never rendered. The backend has no authenticated customer identity tied to `Customer`, so none of these routes are storefront self-service.
+- All merchant API pages show loading, empty and retryable error states instead of silently substituting sample records. Deploy the merged backend Order/Return migrations, configure its private `local` evidence disk, `RETURN_WINDOW_DAYS` (default 30), Sanctum and CORS; set `NEXT_PUBLIC_API_URL` to the backend root. The backend remains authoritative for all eligibility, stock, amounts, refund matching and 422 responses.
 
 ## Notes
 
 - All API requests use `NEXT_PUBLIC_API_URL` as the base URL.
 - Example resolution: `NEXT_PUBLIC_API_URL=http://localhost:8000` + `/api/v1/orders` => `http://localhost:8000/api/v1/orders`.
-- Dashboard overview, customers and report views retain their existing sample-data behavior. The six merchant resource pages above and the Products page require the real API; no sample data is shown on failure. A deployed backend was not available for an end-to-end browser run.
+- Dashboard overview, customers and report views retain their existing sample-data behavior. Merchant order, return, product and finance flows require the real API; no sample data is shown on failure. See `SOFIACART_IMPLEMENTATION_STATUS.md` for verification and deployment limitations.

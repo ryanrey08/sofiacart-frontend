@@ -1,10 +1,12 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { ResourcePage } from "@/components/resource-page";
 import { StatusPill } from "@/components/admin/ui";
 import { useRefunds } from "@/lib/hooks/refunds";
 import { formatDateTime, formatMoney } from "@/lib/admin/format";
 import type { AdminRefund } from "@/types/admin";
+import { Button } from "@/components/ui/button";
 
 export default function RefundsPage() {
   const [page, setPage] = useState(1);
@@ -12,7 +14,8 @@ export default function RefundsPage() {
   return (
     <ResourcePage<AdminRefund>
       title="Refunds"
-      description="Track your store's refund requests and processing status."
+      description="Track financial refunds. For physical item returns and restocking, use Sales > Returns."
+      actions={<Button asChild><Link href="/finance/refunds/new">Record processed refund</Link></Button>}
       data={refunds.data?.data ?? []}
       loading={refunds.isPending}
       error={refunds.isError ? refunds.error : null}

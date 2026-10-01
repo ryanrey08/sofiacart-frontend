@@ -19,6 +19,7 @@ const sections = [
     title: "Sales",
     items: [
       { href: "/sales/orders", label: "Orders", icon: ShoppingCart },
+      { href: "/sales/returns", label: "Returns", icon: RotateCcw },
       { href: "/sales/customers", label: "Customers", icon: Users },
       { href: "/sales/products", label: "Products", icon: Package },
       { href: "/sales/categories", label: "Categories", icon: Tags },
