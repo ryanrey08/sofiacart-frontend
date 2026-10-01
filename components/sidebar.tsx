@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { ArrowLeftRight, Boxes, ChartColumn, CreditCard, LayoutDashboard, Package, ReceiptText, RotateCcw, ShoppingCart, Tags, Users, X } from "lucide-react";
+import { ArrowLeftRight, Boxes, ChartColumn, CreditCard, LayoutDashboard, Package, ReceiptText, RotateCcw, ShoppingCart, Users, X, type LucideIcon } from "lucide-react";
 import { useMerchantIdentity } from "@/components/merchant/use-merchant-identity";
 import { isNavItemActive } from "@/lib/merchant-identity";
 import { cn } from "@/lib/utils";
 
 // Only routes that exist under app/(dashboard) are listed. Store profile, settings and
 // promotions/vouchers modules do not exist in this frontend yet, so they are intentionally omitted.
-const sections = [
+type NavItem = { href: string; label: string; icon: LucideIcon; children?: Array<{ href: string; label: string }> };
+
+const sections: Array<{ title: string; items: NavItem[] }> = [
   {
     title: "Overview",
     items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
@@ -21,8 +23,15 @@ const sections = [
       { href: "/sales/orders", label: "Orders", icon: ShoppingCart },
       { href: "/sales/returns", label: "Returns", icon: RotateCcw },
       { href: "/sales/customers", label: "Customers", icon: Users },
-      { href: "/sales/products", label: "Products", icon: Package },
-      { href: "/sales/categories", label: "Categories", icon: Tags },
+      {
+        href: "/sales/products",
+        label: "Products",
+        icon: Package,
+        children: [
+          { href: "/sales/products", label: "All Products" },
+          { href: "/sales/categories", label: "Categories" },
+        ],
+      },
       { href: "/sales/inventory", label: "Inventory", icon: Boxes },
     ],
   },
@@ -82,7 +91,44 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon;
-                const active = isNavItemActive(pathname, item.href);
+                const childActive = item.children?.some((child) => isNavItemActive(pathname, child.href)) ?? false;
+                const active = !item.children && isNavItemActive(pathname, item.href);
+                if (item.children) {
+                  return (
+                    <li key={item.label}>
+                      <p
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
+                          childActive ? "text-white" : "text-white/70",
+                        )}
+                      >
+                        <Icon aria-hidden="true" className={cn("h-4 w-4 shrink-0", childActive ? "text-sunset-300" : "")} />
+                        {item.label}
+                      </p>
+                      <ul className="ml-5 space-y-0.5 border-l border-white/10 pl-3">
+                        {item.children.map((child) => {
+                          const subActive = isNavItemActive(pathname, child.href);
+                          return (
+                            <li key={child.href}>
+                              <Link
+                                href={child.href}
+                                onClick={onNavigate}
+                                aria-current={subActive ? "page" : undefined}
+                                className={cn(
+                                  "relative flex items-center rounded-xl px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunset-300",
+                                  subActive ? "bg-white text-brand-800 shadow-lg shadow-black/10" : "text-white/70 hover:bg-white/10 hover:text-white",
+                                )}
+                              >
+                                {subActive ? <span aria-hidden="true" className="absolute -left-[15px] top-2 bottom-2 w-1 rounded-full bg-sunset-500" /> : null}
+                                {child.label}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </li>
+                  );
+                }
                 return (
                   <li key={item.href}>
                     <Link

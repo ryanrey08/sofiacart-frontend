@@ -2,6 +2,25 @@
 
 _Last updated: 2026-10-01_
 
+## Category management UI (supersedes older category notes below)
+
+The category list, add and edit pages were rebuilt to match the mockups. They are written against the category management API in `ryanrey08/sofiacart-backend` PR #9 (the README, `routes/api.php`, the `*CategoryRequest` classes and `CategoryResource`). All routes are under `auth:sanctum`, and `merchant_id` is never sent.
+
+| Action | Endpoint |
+| --- | --- |
+| List | `GET /api/v1/categories?page=&per_page=10\|20\|50&search=&status=active\|inactive&parent_id=&sort=name_asc\|name_desc\|products_asc\|products_desc\|oldest\|newest` |
+| Stats | `GET /api/v1/categories/stats` → `{ data: { total, active, inactive, total_products } }` |
+| View / create / update / delete | `GET`, `POST`, `PUT`, `DELETE /api/v1/categories/{id}` (JSON `{name, slug, parent_id, sort_order, description, meta_title, meta_description, is_active, show_in_nav}`) |
+| Image | `POST /api/v1/categories/{id}/image` (multipart `image`, PNG/JPG/WEBP, max 2MB) |
+| Status | `PATCH /api/v1/categories/{id}/status` `{is_active}` |
+| Bulk | `POST /api/v1/categories/bulk` `{action: delete\|activate\|deactivate, ids}` |
+
+- **Sidebar:** Products is a group with All Products and Categories, and the active item is highlighted.
+- **List (`/sales/categories`):** stats cards, search, status, sort and More Filters (parent category), sortable headers, select-all and per-row checkboxes with bulk actions, and a kebab menu (View, Edit, Activate/Deactivate, Delete with confirmation). It also has a "Showing X to Y of Z" footer with pagination and a per-page select, plus a detail panel that stacks under the table below `xl`. The panel holds the information, image upload and product count with a View Products link. Loading skeletons, empty states and retryable error states are included.
+- **Form (`/sales/categories/new`, `/sales/categories/[id]/edit`):** a shared react-hook-form + zod form, with the slug auto-generated until it is edited. The parent options exclude the category itself and its descendants. The description is a sanitized contentEditable rich-text editor with a 0/500 visible-character counter. SEO counters show hints of 50–60 and 150–160 characters. The image dropzone validates on the client, and the form has Active and Show in Navigation toggles plus a live preview. Server 422 errors are mapped onto fields. If the image upload fails after the category is saved, the form keeps the saved record, so retrying updates it instead of creating a duplicate. On success the form invalidates the category and product queries and redirects to the list, which shows a toast and selects the saved row.
+- **Files:** `lib/api/categories.ts`, `lib/hooks/categories.ts`, `lib/merchant-categories.ts`, `lib/validation/category.ts`, `components/merchant/{category-form,category-details,category-image,image-dropzone,rich-text-editor}.tsx`, `components/ui/toast.tsx`, `components/sidebar.tsx`, `app/(dashboard)/sales/categories/{page,new/page,[id]/edit/page}.tsx`, `app/(dashboard)/sales/products/page.tsx` (`?category_id=` prefill), `types/index.ts`, `tests/merchant-categories.test.mjs` and `package.json`.
+- **Verification:** `npm run lint`, `npx tsc --noEmit`, `npm run test:unit` and `npm run build` all pass. The flows were also exercised in a browser against a local mock of the contract above: list, sort, paginate, detail panel, toggling status, client and server (duplicate slug) validation, create with redirect and toast, and edit with an image upload. They have not yet been run against the real backend.
+
 ## Merchant order and return request integration (supersedes older order/refund gap notes below)
 
 Contract verified against `sofiacart-backend` merged `main` commit `b8193b4ddae9dc46454bd77354e7924625d67279`: `routes/api.php`, OrdersController, ReturnRequestsController, OrderResource, OrderItemResource, ReturnRequestResource, StoreOrderRequest, UpdateOrderRequest, models/enums, return migrations and README. These routes are Sanctum-protected merchant/staff back-office flows. `Customer` is not a linked authenticated customer identity; no public checkout/returns were added.
