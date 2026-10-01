@@ -32,6 +32,8 @@ test("list params drop empty filters and map the UI filters to API query keys", 
     { page: 3, per_page: 20, search: "maria", customer_type: "vip", status: "active", date_from: "2026-01-01", date_to: "2026-02-01" },
   );
   assert.deepEqual(buildCustomerListParams({ search: "   ", customerType: "", status: "", page: 0 }), { page: 1, per_page: 10 });
+  assert.deepEqual(buildCustomerListParams({ perPage: 0 }), { page: 1, per_page: 10 });
+  assert.deepEqual(buildCustomerListParams({ perPage: Number.NaN }), { page: 1, per_page: 10 });
 });
 
 test("names fall back to the legacy single `name` column", () => {
