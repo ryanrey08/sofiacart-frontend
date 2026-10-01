@@ -37,12 +37,12 @@ export function useProducts(params: ProductListParams) {
   });
 }
 
-const METRIC_FILTERS: Array<{ key: string; params: ProductListParams }> = [
+const METRIC_FILTERS = [
   { key: "total", params: {} },
   { key: "active", params: { status: "active" } },
   { key: "low_stock", params: { stock_status: "low_stock" } },
   { key: "out_of_stock", params: { stock_status: "out_of_stock" } },
-];
+] as const satisfies ReadonlyArray<{ key: string; params: ProductListParams }>;
 
 export interface ProductMetrics {
   total: number | null;
@@ -64,11 +64,14 @@ export function useProductMetrics(): ProductMetrics {
     })),
   });
 
+  // Counts are keyed by METRIC_FILTERS entry so the order of the queries cannot mislabel them.
+  const counts = Object.fromEntries(METRIC_FILTERS.map((filter, index) => [filter.key, results[index].data ?? null])) as Record<
+    (typeof METRIC_FILTERS)[number]["key"],
+    number | null
+  >;
+
   return {
-    total: results[0].data ?? null,
-    active: results[1].data ?? null,
-    low_stock: results[2].data ?? null,
-    out_of_stock: results[3].data ?? null,
+    ...counts,
     isPending: results.some((result) => result.isPending),
     isError: results.some((result) => result.isError),
   };

@@ -387,10 +387,12 @@ export function ProductForm({
                 <Input
                   id="product-low-stock"
                   inputMode="numeric"
-                  disabled={!trackInventory}
                   hasError={!!errors.lowStockThreshold}
                   {...register("lowStockThreshold")}
                 />
+                {!trackInventory ? (
+                  <p className="mt-1 text-xs text-muted-foreground">Saved but unused while inventory tracking is off.</p>
+                ) : null}
               </Field>
             </div>
           </FormSection>

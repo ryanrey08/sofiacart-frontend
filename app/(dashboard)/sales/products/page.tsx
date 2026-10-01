@@ -61,7 +61,11 @@ function ProductsContent() {
   const [stockStatus, setStockStatus] = useState<ProductStockStatus | "">("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number[]>([]);
-  const [previewId, setPreviewId] = useState<number | null>(null);
+  // A save redirects back here with ?saved=<id>, so the saved product opens in the preview panel.
+  const [previewId, setPreviewId] = useState<number | null>(() => {
+    const saved = Number(searchParams.get("saved"));
+    return Number.isInteger(saved) && saved > 0 ? saved : null;
+  });
   const [adjusting, setAdjusting] = useState<ProductResource | null>(null);
   // A save redirects back here with ?action=, which seeds the confirmation banner once.
   const [notice, setNotice] = useState<NoticeState | null>(() => {
