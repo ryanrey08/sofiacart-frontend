@@ -57,7 +57,11 @@ function ProductsContent() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProductStatus | "">("");
-  const [categoryId, setCategoryId] = useState("");
+  // Category pages link here with ?category_id=<id> to show that category's products.
+  const [categoryId, setCategoryId] = useState(() => {
+    const value = searchParams.get("category_id") ?? "";
+    return /^\d+$/.test(value) ? value : "";
+  });
   const [stockStatus, setStockStatus] = useState<ProductStockStatus | "">("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number[]>([]);

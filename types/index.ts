@@ -225,15 +225,39 @@ export interface MerchantRegistrationFormValues {
 // Merchant catalog DTOs mirror sofiacart-backend app/Http/Resources/{Product,Category,InventoryLog}Resource.php.
 export type { Paginated, ProductStatus } from "./admin";
 
+// Category management fields (parent, image, status, navigation, SEO, products_count) are optional so
+// older backends that only return name/slug/description keep working.
 export interface CategoryResource {
   id: number;
   merchant_id: number;
   name: string;
   slug: string;
   description: string | null;
+  parent_id?: number | null;
+  parent?: { id: number; name: string; slug?: string } | null;
+  sort_order?: number | null;
+  image?: string | null;
+  image_url?: string | null;
+  is_active?: boolean;
+  show_in_nav?: boolean;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  products_count?: number | null;
   created_at: string | null;
   updated_at: string | null;
 }
+
+export interface CategoryStats {
+  total: number;
+  active: number;
+  inactive: number;
+  total_products: number;
+}
+
+export type CategoryStatusFilter = "active" | "inactive";
+export type CategorySortField = "name" | "products_count" | "created_at";
+export type CategorySortDirection = "asc" | "desc";
+export type CategoryBulkAction = "delete" | "activate" | "deactivate";
 
 // `stock_status` is computed by Product::getStockStatusAttribute() and also accepted as a list filter.
 export type ProductStockStatus = "out_of_stock" | "low_stock" | "active";
