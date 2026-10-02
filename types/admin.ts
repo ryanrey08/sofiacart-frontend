@@ -206,7 +206,8 @@ export interface AdminTransaction {
   payment_id: number | null;
   order_id: number | null;
   reference: string;
-  type: "credit" | "debit";
+  // The ledger now records service-written payment/refund rows too (credit/debit are legacy).
+  type: "credit" | "debit" | "payment" | "refund";
   status: TransactionStatus;
   amount: string | number;
   description: string | null;

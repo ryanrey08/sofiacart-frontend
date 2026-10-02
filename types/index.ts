@@ -313,21 +313,84 @@ export interface ProductResource {
   updated_at: string | null;
 }
 
+// Mirrors sofiacart-backend App\Enums\InventoryMovementType.
+export type InventoryMovementType = "stock_in" | "stock_out" | "adjustment" | "sale" | "cancellation" | "return";
+
+// Update Stock form modes → AdjustInventoryRequest `adjustment_type`.
+export type StockAdjustmentType = "increase" | "decrease" | "set";
+
+// One stock pool (a product's base stock or a single variant), from InventoryItemResource.
+export interface InventoryItemResource {
+  id: string; // "product:12" | "variant:5"
+  item_type: "product" | "variant";
+  product_id: number;
+  product_variant_id: number | null;
+  merchant_id: number;
+  name: string;
+  sku: string;
+  brand: string | null;
+  product_status: ProductStatus;
+  variant: { color: string | null; size: string | null } | null;
+  category: { id: number; name: string } | null;
+  image: string | null;
+  price: string | null;
+  cost_price: string | null;
+  track_inventory: boolean;
+  low_stock_threshold: number;
+  on_hand: number;
+  reserved: number;
+  available: number;
+  stock_status: ProductStockStatus;
+  inventory_value: string | null;
+  updated_at: string | null;
+}
+
+// GET /api/v1/inventory/summary → { data: InventorySummary }.
+export interface InventorySummary {
+  total_items: number;
+  total_skus: number;
+  in_stock: number;
+  low_stock: number;
+  out_of_stock: number;
+  reserved_items: number;
+  total_on_hand: number;
+  total_reserved: number;
+  total_available: number;
+  inventory_value: string;
+}
+
 export interface InventoryLogResource {
   id: number;
   merchant_id: number;
   product_id: number;
-  user_id: number;
+  product_variant_id?: number | null;
+  user_id: number | null;
+  type?: InventoryMovementType | null;
   reason: string;
   quantity_change: number;
+  previous_stock?: number;
   resulting_stock: number;
+  reference_type?: string | null;
+  reference_number?: string | null;
+  supplier?: string | null;
+  reference_date?: string | null;
   notes: string | null;
   product?: ProductResource | null;
+  variant?: { id: number; sku: string; color: string | null; size: string | null } | null;
+  user?: { id: number; name: string } | null;
   created_at: string | null;
+}
+
+// GET /api/v1/inventory/products/{product} → { data: InventoryProductDetails }.
+export interface InventoryProductDetails {
+  product: ProductResource;
+  items: InventoryItemResource[];
+  recent_movements: InventoryLogResource[];
 }
 
 export interface InventoryAdjustResponse {
   message: string;
   product: ProductResource;
+  inventory_item?: InventoryItemResource | null;
   inventory_log: InventoryLogResource;
 }
