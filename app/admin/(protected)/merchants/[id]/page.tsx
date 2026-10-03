@@ -1,18 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Boxes, CircleDollarSign, ClipboardList, CreditCard, Package, Receipt, RotateCcw, ShoppingCart, Store, Users } from "lucide-react";
+import { CustomersList } from "@/components/admin/lists/customers-list";
+import { FinanceOverview } from "@/components/admin/lists/finance-list";
+import { InventoryOverview } from "@/components/admin/lists/inventory-list";
+import { OrdersList } from "@/components/admin/lists/orders-list";
+import { ProductsList } from "@/components/admin/lists/products-list";
+import { ReturnsList } from "@/components/admin/lists/returns-list";
+import { MerchantApplicationDetails, MerchantDocuments, OnboardingHistory, OnboardingProgress } from "@/components/admin/merchant-application";
 import { MerchantBillingPanel } from "@/components/admin/merchant-billing-panel";
 import { MerchantStatusForm } from "@/components/admin/merchant-status-form";
+import { useAdminSession } from "@/components/admin/admin-session";
 import { Can, RequirePermission } from "@/components/admin/require-permission";
-import { AdminTable, DetailList, EmptyState, ErrorState, LoadingState, PageHeader, Pagination, StatusPill } from "@/components/admin/ui";
+import { EmptyState, ErrorState, LoadingState, PageHeader, Panel, StatCard, StatGrid, StatusPill, Tabs, type TabItem } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fetchMerchant, fetchMerchantOnboardingHistory } from "@/lib/api/admin";
-import { formatDateTime, formatMoney, humanize } from "@/lib/admin/format";
-import { ADMIN_PERMISSIONS } from "@/lib/admin/permissions";
+import { fetchMerchant } from "@/lib/api/admin";
+import { formatDateTime, formatMoney } from "@/lib/admin/format";
+import { ADMIN_PERMISSIONS, type PermissionRequirement } from "@/lib/admin/permissions";
+import type { AdminMerchant } from "@/types/admin";
+
+type DetailTab = "overview" | "products" | "inventory" | "orders" | "returns" | "customers" | "finance" | "billing";
+
+const TABS: Array<TabItem<DetailTab> & { permission: PermissionRequirement }> = [
+  { id: "overview", label: "Overview", icon: Store, permission: ADMIN_PERMISSIONS.MERCHANTS_VIEW },
+  { id: "products", label: "Products", icon: Package, permission: ADMIN_PERMISSIONS.PRODUCTS_VIEW },
+  { id: "inventory", label: "Inventory", icon: Boxes, permission: ADMIN_PERMISSIONS.PRODUCTS_INVENTORY },
+  { id: "orders", label: "Orders", icon: ShoppingCart, permission: ADMIN_PERMISSIONS.ORDERS_VIEW },
+  { id: "returns", label: "Returns", icon: RotateCcw, permission: ADMIN_PERMISSIONS.ORDERS_VIEW },
+  { id: "customers", label: "Customers", icon: Users, permission: ADMIN_PERMISSIONS.CUSTOMERS_VIEW },
+  { id: "finance", label: "Payments & Refunds", icon: CreditCard, permission: ADMIN_PERMISSIONS.PAYMENTS_VIEW },
+  { id: "billing", label: "Billing", icon: Receipt, permission: ADMIN_PERMISSIONS.MERCHANTS_BILLING_VIEW },
+];
 
 export default function AdminMerchantDetailPage() {
   return (
@@ -25,20 +47,16 @@ export default function AdminMerchantDetailPage() {
 function MerchantDetail() {
   const params = useParams<{ id: string }>();
   const merchantId = Number(params.id);
-  const queryClient = useQueryClient();
-  const [historyPage, setHistoryPage] = useState(1);
   const validId = Number.isInteger(merchantId) && merchantId > 0;
+  const queryClient = useQueryClient();
+  const { can } = useAdminSession();
+  const [tab, setTab] = useState<DetailTab>("overview");
+  const tabs = useMemo(() => TABS.filter((item) => can(item.permission)), [can]);
 
   const merchant = useQuery({
     queryKey: ["admin", "merchants", merchantId],
     queryFn: () => fetchMerchant(merchantId),
     enabled: validId,
-  });
-  const history = useQuery({
-    queryKey: ["admin", "merchants", merchantId, "history", historyPage],
-    queryFn: () => fetchMerchantOnboardingHistory(merchantId, { page: historyPage, per_page: 10 }),
-    enabled: validId,
-    placeholderData: keepPreviousData,
   });
 
   if (!validId) return <EmptyState title="Invalid merchant" />;
@@ -47,103 +65,83 @@ function MerchantDetail() {
 
   const data = merchant.data;
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
+        icon={Store}
         title={data.store_name}
-        description={`${data.business_name ?? "—"} · ${data.store_slug ?? "no slug"}`}
+        description={`${data.business_name ?? "—"} · ${data.store_category ?? "No category"} · Joined ${formatDateTime(data.created_at)}`}
         actions={
-          <Button asChild variant="outline">
-            <Link href="/admin/merchants">Back to merchants</Link>
-          </Button>
+          <>
+            <StatusPill status={data.status} />
+            <Button asChild variant="outline">
+              <Link href="/admin/merchants">
+                <ArrowLeft className="h-4 w-4" />
+                Back to merchants
+              </Link>
+            </Button>
+          </>
         }
       />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
-        <Card className="border-none bg-white/90">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Profile</CardTitle>
-            <StatusPill status={data.status} />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <DetailList
-              items={[
-                { label: "Business type", value: data.business_type },
-                { label: "Business category", value: data.business_category },
-                { label: "Permit number", value: data.business_permit_number },
-                { label: "TIN", value: data.tin },
-                { label: "Business address", value: [data.business_address, data.city, data.province, data.zip_code].filter(Boolean).join(", ") || "—" },
-                { label: "Store category", value: data.store_category },
-                { label: "Store contact", value: [data.contact_email, data.contact_phone].filter(Boolean).join(" · ") || "—" },
-                { label: "Owner", value: [data.owner_name, data.owner_position].filter(Boolean).join(" · ") || "—" },
-                { label: "Owner contact", value: [data.owner_email, data.owner_phone].filter(Boolean).join(" · ") || "—" },
-                { label: "Government ID", value: humanize(data.government_id_type) },
-                { label: "Account", value: data.user ? `${data.user.name} (${data.user.email})` : "—" },
-                { label: "Orders / products", value: `${data.orders_count ?? 0} / ${data.products_count ?? 0}` },
-                { label: "Collected payments", value: formatMoney(data.payments_sum_amount) },
-                { label: "Registered", value: formatDateTime(data.created_at) },
-              ]}
-            />
-          </CardContent>
-        </Card>
-        <Can permission={ADMIN_PERMISSIONS.MERCHANTS_MANAGE}>
-          <Card className="h-fit border-none bg-white/90">
-            <CardHeader>
-              <CardTitle>Onboarding decision</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <MerchantStatusForm
-                merchant={data}
-                onUpdated={(updated) => queryClient.setQueryData(["admin", "merchants", merchantId], { ...data, ...updated })}
-              />
-            </CardContent>
-          </Card>
-        </Can>
+
+      <StatGrid>
+        <StatCard icon={ShoppingCart} tone="purple" label="Orders" value={(data.orders_count ?? 0).toLocaleString()} />
+        <StatCard icon={Package} tone="blue" label="Products" value={(data.products_count ?? 0).toLocaleString()} />
+        <StatCard icon={Users} tone="amber" label="Customers" value={(data.customers_count ?? 0).toLocaleString()} />
+        <StatCard
+          icon={CircleDollarSign}
+          tone="green"
+          label="Collected payments"
+          value={formatMoney(data.payments_sum_amount)}
+          hint={`${data.transactions_count ?? 0} transactions · ${data.refunds_count ?? 0} refunds`}
+        />
+      </StatGrid>
+
+      <div className="rounded-2xl border border-slate-200/70 bg-white shadow-card">
+        <div className="px-4 sm:px-5">
+          <Tabs label="Merchant sections" tabs={tabs} value={tab} onChange={setTab} />
+        </div>
+        <div className="p-4 sm:p-5">
+          {tab === "overview" ? <MerchantOverview merchant={data} onUpdated={(updated) => queryClient.setQueryData<AdminMerchant>(["admin", "merchants", merchantId], { ...data, ...updated })} /> : null}
+          {tab === "products" ? <ProductsList merchantId={merchantId} /> : null}
+          {tab === "inventory" ? <InventoryOverview merchantId={merchantId} /> : null}
+          {tab === "orders" ? <OrdersList merchantId={merchantId} /> : null}
+          {tab === "returns" ? <ReturnsList merchantId={merchantId} /> : null}
+          {tab === "customers" ? <CustomersList merchantId={merchantId} /> : null}
+          {tab === "finance" ? <FinanceOverview merchantId={merchantId} /> : null}
+          {tab === "billing" ? <MerchantBillingPanel merchantId={merchantId} /> : null}
+        </div>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Promotions/vouchers and subscription plans are not part of the current backend, so they are not shown for merchants.
+      </p>
+    </div>
+  );
+}
 
-      <Can permission={ADMIN_PERMISSIONS.MERCHANTS_BILLING_VIEW}>
-        <Card className="border-none bg-white/90">
-          <CardHeader>
-            <CardTitle>Billing</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <MerchantBillingPanel merchantId={merchantId} />
-          </CardContent>
-        </Card>
-      </Can>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-slate-900">Onboarding history</h2>
-        {history.isPending ? <LoadingState /> : null}
-        {history.isError ? <ErrorState error={history.error} onRetry={() => void history.refetch()} /> : null}
-        {history.data && history.data.data.length === 0 ? <EmptyState title="No onboarding activity recorded" /> : null}
-        {history.data && history.data.data.length > 0 ? (
-          <>
-            <AdminTable
-              caption="Merchant onboarding history"
-              rows={history.data.data}
-              rowKey={(row) => row.id}
-              columns={[
-                { key: "when", header: "When", render: (row) => formatDateTime(row.created_at) },
-                { key: "actor", header: "Admin", render: (row) => row.actor?.name ?? "System" },
-                { key: "action", header: "Action", render: (row) => row.description ?? row.action },
-                {
-                  key: "details",
-                  header: "Details",
-                  render: (row) => {
-                    const metadata = (row.metadata ?? {}) as { status?: string; reason?: string | null };
-                    return (
-                      <div className="space-y-1">
-                        {metadata.status ? <StatusPill status={metadata.status} /> : null}
-                        {metadata.reason ? <p className="text-xs text-muted-foreground">{metadata.reason}</p> : null}
-                      </div>
-                    );
-                  },
-                },
-              ]}
-            />
-            <Pagination meta={history.data.meta} onPageChange={setHistoryPage} />
-          </>
-        ) : null}
-      </section>
+function MerchantOverview({ merchant, onUpdated }: { merchant: AdminMerchant; onUpdated: (merchant: AdminMerchant) => void }) {
+  return (
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,1fr)]">
+      <div className="space-y-5">
+        <Panel icon={ClipboardList} title="Onboarding progress">
+          <OnboardingProgress merchant={merchant} />
+        </Panel>
+        <Panel title="Application details">
+          <MerchantApplicationDetails merchant={merchant} />
+        </Panel>
+        <Panel title="Uploaded documents">
+          <MerchantDocuments merchant={merchant} />
+        </Panel>
+      </div>
+      <div className="space-y-5">
+        <Can permission={ADMIN_PERMISSIONS.MERCHANTS_MANAGE}>
+          <Panel title="Onboarding decision" description="Approve, reject, request information or change the account status.">
+            <MerchantStatusForm key={merchant.id} merchant={merchant} onUpdated={onUpdated} />
+          </Panel>
+        </Can>
+        <Panel title="Approval / rejection history">
+          <OnboardingHistory merchantId={merchant.id} />
+        </Panel>
+      </div>
     </div>
   );
 }

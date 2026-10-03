@@ -62,8 +62,14 @@ export const adminPermissionSchema = z.object({
 });
 export type AdminPermissionSchema = z.infer<typeof adminPermissionSchema>;
 
-export const merchantStatusSchema = z.object({
-  status: z.enum(["pending", "verified", "information_requested", "suspended", "rejected"]),
-  reason: z.string().max(1000, "Reason must be at most 1000 characters"),
-});
+// Mirrors UpdateMerchantStatusRequest: a reason is required for rejections and information requests.
+export const merchantStatusSchema = z
+  .object({
+    status: z.enum(["pending", "verified", "information_requested", "suspended", "rejected"]),
+    reason: z.string().max(1000, "Reason must be at most 1000 characters"),
+  })
+  .refine((values) => !["rejected", "information_requested"].includes(values.status) || values.reason.trim().length > 0, {
+    path: ["reason"],
+    message: "A reason is required when rejecting a merchant or requesting more information.",
+  });
 export type MerchantStatusSchema = z.infer<typeof merchantStatusSchema>;
