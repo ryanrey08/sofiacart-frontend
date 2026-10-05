@@ -73,7 +73,7 @@ export interface AdminSession {
 }
 
 export type MerchantStatus = "pending" | "verified" | "information_requested" | "suspended" | "rejected";
-export type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
+export type OrderStatus = "pending" | "processing" | "out_for_delivery" | "completed" | "cancelled";
 export type OrderPaymentStatus = "unpaid" | "paid" | "partially_refunded" | "refunded";
 export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled" | "expired" | "partially_refunded" | "refunded";
 export type ProductStatus = "pending_approval" | "active" | "draft" | "archived" | "rejected";

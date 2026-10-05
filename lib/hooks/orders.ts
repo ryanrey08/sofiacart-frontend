@@ -30,7 +30,7 @@ export function useOrderSummary(params: Pick<OrderFilters, "search" | "date_from
   return useQuery({
     queryKey: ["merchant", "orders", "summary", params],
     queryFn: async () => {
-      const statuses: MerchantOrderStatus[] = ["pending", "processing", "completed", "cancelled"];
+      const statuses: MerchantOrderStatus[] = ["pending", "processing", "out_for_delivery", "completed", "cancelled"];
       const entries = await Promise.all(statuses.map(async (status) => {
         const response = await api.get<Paginated<MerchantOrder>>("/api/v1/orders", {
           params: { ...params, status, page: 1, per_page: 1 },

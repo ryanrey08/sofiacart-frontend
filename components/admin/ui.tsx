@@ -471,7 +471,7 @@ export function SelectInput({ className, ...props }: SelectHTMLAttributes<HTMLSe
   );
 }
 
-const statusTone: Record<string, "green" | "amber" | "red" | "blue" | "slate" | "purple"> = {
+const statusTone: Record<string, "green" | "amber" | "red" | "blue" | "indigo" | "slate" | "purple"> = {
   active: "green",
   verified: "green",
   completed: "green",
@@ -482,6 +482,7 @@ const statusTone: Record<string, "green" | "amber" | "red" | "blue" | "slate" | 
   approved: "blue",
   credit: "blue",
   processing: "blue",
+  out_for_delivery: "indigo",
   payment: "blue",
   pending: "amber",
   pending_approval: "amber",
@@ -508,6 +509,7 @@ const pillStyles = {
   amber: "bg-amber-50 text-amber-700 ring-amber-200",
   red: "bg-red-50 text-red-700 ring-red-200",
   blue: "bg-sky-50 text-sky-700 ring-sky-200",
+  indigo: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   slate: "bg-slate-100 text-slate-600 ring-slate-200",
   purple: "bg-brand-50 text-brand-700 ring-brand-200",
 };
@@ -517,6 +519,7 @@ const dotStyles = {
   amber: "bg-amber-500",
   red: "bg-red-500",
   blue: "bg-sky-500",
+  indigo: "bg-indigo-500",
   slate: "bg-slate-400",
   purple: "bg-brand-500",
 };
@@ -526,8 +529,13 @@ const statusLabels: Record<string, string> = {
   verified: "Approved",
   information_requested: "Info requested",
   pending_approval: "Pending approval",
+  out_for_delivery: "Out for Delivery",
   active: "Active",
 };
+
+export function statusLabel(status: string) {
+  return statusLabels[status] ?? humanize(status);
+}
 
 export function StatusPill({ status, label }: { status: string | null | undefined; label?: string }) {
   if (!status) return <span className="text-slate-400">—</span>;
@@ -535,7 +543,7 @@ export function StatusPill({ status, label }: { status: string | null | undefine
   return (
     <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", pillStyles[tone])}>
       <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", dotStyles[tone])} />
-      {label ?? statusLabels[status] ?? humanize(status)}
+      {label ?? statusLabel(status)}
     </span>
   );
 }

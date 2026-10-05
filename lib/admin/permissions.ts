@@ -181,7 +181,8 @@ export function safeAdminRedirect(value: string | null | undefined) {
 // Mirrors OrdersController::ensureValidStatusTransition in sofiacart-backend.
 export const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = {
   pending: ["processing", "cancelled"],
-  processing: ["completed", "cancelled"],
+  processing: ["out_for_delivery", "cancelled"],
+  out_for_delivery: ["completed"],
   completed: [],
   cancelled: [],
 };

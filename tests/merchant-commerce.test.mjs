@@ -18,8 +18,10 @@ test("order payload never sends a merchant, amount, status or client price", () 
     customer_id: 5, items: [{ product_id: 2, product_variant_id: 3, quantity: 2 }, { product_id: 4, quantity: 1 }], notes: "Gift",
   });
   assert.deepEqual(allowedOrderTransitions({ ...order, status: "pending", payment_status: "unpaid" }), ["processing", "cancelled"]);
-  assert.deepEqual(allowedOrderTransitions({ ...order, status: "processing", payment_status: "unpaid" }), ["cancelled"]);
-  assert.deepEqual(allowedOrderTransitions({ ...order, status: "processing" }), ["completed"]);
+  assert.deepEqual(allowedOrderTransitions({ ...order, status: "processing", payment_status: "unpaid" }), ["out_for_delivery", "cancelled"]);
+  assert.deepEqual(allowedOrderTransitions({ ...order, status: "processing" }), ["out_for_delivery"]);
+  assert.deepEqual(allowedOrderTransitions({ ...order, status: "out_for_delivery" }), ["completed"]);
+  assert.deepEqual(allowedOrderTransitions({ ...order, status: "out_for_delivery", payment_status: "unpaid" }), []);
   assert.deepEqual(allowedOrderTransitions(order), []);
   assert.deepEqual(returnTransitions, { pending: ["approved", "rejected"], approved: ["processed"], rejected: [], processed: [] });
 });
@@ -28,7 +30,7 @@ test("return eligibility respects paid/partially refunded, date window, customer
   const now = new Date("2026-10-15T00:00:00Z");
   assert.equal(returnEligible(order, 30, now), true);
   assert.equal(returnEligible({ ...order, payment_status: "partially_refunded" }, 30, now), true);
-  for (const changed of [{ status: "processing" }, { payment_status: "refunded" }, { customer_id: null }, { ordered_at: null }]) {
+  for (const changed of [{ status: "processing" }, { status: "out_for_delivery" }, { payment_status: "refunded" }, { customer_id: null }, { ordered_at: null }]) {
     assert.equal(returnEligible({ ...order, ...changed }, 30, now), false);
   }
   assert.equal(returnEligible(order, 10, now), false);
@@ -78,12 +80,15 @@ test("the return wizard clamps quantities and estimates line amounts from order 
 
 test("the order timeline is derived from status and never invents timestamps", () => {
   assert.deepEqual(orderTimeline({ ...order, status: "pending", payment_status: "unpaid" }).map((step) => step.state),
-    ["done", "current", "upcoming", "upcoming"]);
+    ["done", "current", "upcoming", "upcoming", "upcoming"]);
   assert.deepEqual(orderTimeline({ ...order, status: "processing" }).map((step) => step.state),
-    ["done", "done", "done", "current"]);
-  assert.deepEqual(orderTimeline(order).map((step) => step.state), ["done", "done", "done", "done"]);
+    ["done", "done", "done", "current", "upcoming"]);
+  assert.deepEqual(orderTimeline({ ...order, status: "out_for_delivery" }).map((step) => step.state),
+    ["done", "done", "done", "done", "current"]);
+  assert.deepEqual(orderTimeline(order).map((step) => step.key), ["placed", "paid", "processing", "out_for_delivery", "completed"]);
+  assert.deepEqual(orderTimeline(order).map((step) => step.state), ["done", "done", "done", "done", "done"]);
   assert.deepEqual(orderTimeline({ ...order, status: "cancelled" }).map((step) => step.key), ["placed", "cancelled"]);
-  assert.deepEqual(orderTimeline(order).map((step) => step.at), [order.ordered_at, null, null, null]);
+  assert.deepEqual(orderTimeline(order).map((step) => step.at), [order.ordered_at, null, null, null, null]);
 });
 
 test("merchant lists preserve empty paginated envelopes", () => {

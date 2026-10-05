@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowUpRight, ClipboardList, Clock3, PackageCheck, Search } from "lucide-react";
+import { ArrowUpRight, ClipboardList, Clock3, PackageCheck, Search, Truck } from "lucide-react";
 import { AdminTable, EmptyState, ErrorState, Field, FilterBar, LoadingState, Pagination, SelectInput, StatusPill } from "@/components/admin/ui";
 import { PageIntro } from "@/components/merchant/page-intro";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ const statusTabs: Array<{ value: MerchantOrderStatus | ""; label: string }> = [
   { value: "", label: "All orders" },
   { value: "pending", label: "Pending" },
   { value: "processing", label: "Processing" },
+  { value: "out_for_delivery", label: "Out for Delivery" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
 ];
@@ -45,6 +46,7 @@ export default function OrdersPage() {
     { label: "Total orders", value: summary.data?.total, icon: ClipboardList, tone: "bg-brand-50 text-brand-700", detail: "Across all statuses" },
     { label: "Pending", value: summary.data?.pending, icon: Clock3, tone: "bg-amber-50 text-amber-700", detail: "Awaiting fulfillment" },
     { label: "Processing", value: summary.data?.processing, icon: PackageCheck, tone: "bg-blue-50 text-blue-700", detail: "Being prepared" },
+    { label: "Out for Delivery", value: summary.data?.out_for_delivery, icon: Truck, tone: "bg-indigo-50 text-indigo-700", detail: "On the way to the customer" },
     { label: "Completed", value: summary.data?.completed, icon: ArrowUpRight, tone: "bg-emerald-50 text-emerald-700", detail: "Successfully fulfilled" },
   ];
 
@@ -53,7 +55,7 @@ export default function OrdersPage() {
 
     {summary.isPending ? <LoadingState label="Loading order summary…" /> :
       summary.isError ? <ErrorState title="Unable to load order summary" error={summary.error} onRetry={() => void summary.refetch()} /> :
-      <section aria-label="Order summary" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Order summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {metrics.map(({ label, value, icon: Icon, tone, detail }) => <Card key={label} className="border-none bg-white/90 shadow-soft">
           <CardContent className="flex items-start justify-between gap-3 p-4">
             <div>

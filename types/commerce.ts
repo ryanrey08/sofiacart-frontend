@@ -1,4 +1,4 @@
-export type MerchantOrderStatus = "pending" | "processing" | "completed" | "cancelled";
+export type MerchantOrderStatus = "pending" | "processing" | "out_for_delivery" | "completed" | "cancelled";
 export type MerchantPaymentStatus = "unpaid" | "paid" | "partially_refunded" | "refunded";
 export type ReturnStatus = "pending" | "approved" | "rejected" | "processed";
 

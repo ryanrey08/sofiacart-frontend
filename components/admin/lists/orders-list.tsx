@@ -21,6 +21,7 @@ import {
   SearchField,
   SelectInput,
   StatusPill,
+  statusLabel,
 } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,7 @@ import { ADMIN_PERMISSIONS, ORDER_STATUS_TRANSITIONS } from "@/lib/admin/permiss
 import { useDebouncedValue } from "@/lib/admin/use-debounced-value";
 import type { AdminOrder, OrderStatus } from "@/types/admin";
 
-export const ORDER_STATUSES: OrderStatus[] = ["pending", "processing", "completed", "cancelled"];
+export const ORDER_STATUSES: OrderStatus[] = ["pending", "processing", "out_for_delivery", "completed", "cancelled"];
 export const ORDER_PAYMENT_STATUSES = ["unpaid", "paid", "partially_refunded", "refunded"];
 
 const EMPTY_FILTERS = { search: "", merchant_id: "", status: "", payment_status: "", date_from: "", date_to: "" };
@@ -74,7 +75,7 @@ export function OrdersList({ merchantId, customerId }: { merchantId?: number; cu
             <option value="">All</option>
             {ORDER_STATUSES.map((value) => (
               <option key={value} value={value}>
-                {humanize(value)}
+                {statusLabel(value)}
               </option>
             ))}
           </SelectInput>
@@ -296,7 +297,7 @@ function OrderStatusAction({ order }: { order: AdminOrder }) {
   const mutation = useMutation({
     mutationFn: () => updateOrderStatus(order.id, next as OrderStatus),
     onSuccess: async (updated) => {
-      setNotice({ tone: "success", text: `Order ${updated.order_number} is now ${humanize(updated.status)}.` });
+      setNotice({ tone: "success", text: `Order ${updated.order_number} is now ${statusLabel(updated.status)}.` });
       await queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
     },
     onError: (error) => setNotice({ tone: "error", text: parseApiError(error).message }),
@@ -306,14 +307,14 @@ function OrderStatusAction({ order }: { order: AdminOrder }) {
     <section className="space-y-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
       <h3 className="text-sm font-bold text-navy-900">Update order status</h3>
       {transitions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{humanize(order.status)} is a final status.</p>
+        <p className="text-sm text-muted-foreground">{statusLabel(order.status)} is a final status.</p>
       ) : (
         <div className="flex flex-wrap items-end gap-2">
           <Field label="New status" htmlFor={`order-next-${order.id}`}>
             <SelectInput id={`order-next-${order.id}`} value={next} onChange={(event) => setChoice(event.target.value)}>
               {transitions.map((value) => (
                 <option key={value} value={value}>
-                  {humanize(value)}
+                  {statusLabel(value)}
                 </option>
               ))}
             </SelectInput>
@@ -323,7 +324,7 @@ function OrderStatusAction({ order }: { order: AdminOrder }) {
           </Button>
         </div>
       )}
-      <p className="text-xs text-muted-foreground">Completing requires a paid order; cancelling requires an unpaid or fully refunded order (enforced by the API).</p>
+      <p className="text-xs text-muted-foreground">Orders must go out for delivery before they can be completed, and completing requires a paid order; cancelling requires an unpaid or fully refunded order (enforced by the API).</p>
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
     </section>
   );

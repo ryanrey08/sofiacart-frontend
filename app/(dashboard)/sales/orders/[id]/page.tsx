@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { AdminTable, ErrorState, LoadingState, Notice, StatusPill } from "@/components/admin/ui";
+import { AdminTable, ErrorState, LoadingState, Notice, StatusPill, statusLabel } from "@/components/admin/ui";
 import { PageIntro } from "@/components/merchant/page-intro";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -127,10 +127,11 @@ export default function OrderDetailPage() {
         <Button key={status} variant="outline" disabled={change.isPending} onClick={async () => {
           change.reset();
           setNotice("");
-          try { await change.mutateAsync(status); setNotice(`Order is now ${humanize(status)}.`); }
+          try { await change.mutateAsync(status); setNotice(`Order is now ${statusLabel(status)}.`); }
           catch { /* API validation is shown above. */ }
-        }}>{humanize(status)}</Button>)}</div> : <p className="text-sm text-slate-600">No further status change is allowed for this order.</p>}
-      {data.status === "processing" && data.payment_status !== "paid" && <p className="text-sm text-amber-800">Completion requires a paid order. Payment status is updated by the backend payment workflow, not here.</p>}
+        }}>{statusLabel(status)}</Button>)}</div> : <p className="text-sm text-slate-600">No further status change is allowed for this order.</p>}
+      {data.status === "processing" && <p className="text-sm text-slate-600">Mark the order out for delivery once it ships; it can be completed after that.</p>}
+      {data.status === "out_for_delivery" && data.payment_status !== "paid" && <p className="text-sm text-amber-800">Completion requires a paid order. Payment status is updated by the backend payment workflow, not here.</p>}
     </section>
 
     <section className="space-y-3 rounded-2xl bg-white p-5 shadow-soft">

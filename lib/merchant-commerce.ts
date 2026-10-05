@@ -10,9 +10,11 @@ export const returnReasons = [
   "Other",
 ] as const;
 
+// Mirrors OrdersController::ensureValidStatusTransition in sofiacart-backend.
 export const orderTransitions: Record<MerchantOrderStatus, MerchantOrderStatus[]> = {
   pending: ["processing", "cancelled"],
-  processing: ["completed", "cancelled"],
+  processing: ["out_for_delivery", "cancelled"],
+  out_for_delivery: ["completed"],
   completed: [],
   cancelled: [],
 };
@@ -77,12 +79,14 @@ export function orderTimeline(order: MerchantOrder): Array<{ key: string; label:
     ];
   }
   const paid = ["paid", "partially_refunded", "refunded"].includes(order.payment_status);
-  const processing = order.status === "processing" || order.status === "completed";
+  const processing = ["processing", "out_for_delivery", "completed"].includes(order.status);
+  const outForDelivery = order.status === "out_for_delivery" || order.status === "completed";
   const completed = order.status === "completed";
   const steps: Array<{ key: string; label: string; done: boolean; at: string | null }> = [
     { key: "placed", label: "Order placed", done: true, at: order.ordered_at },
     { key: "paid", label: "Payment confirmed", done: paid, at: null },
     { key: "processing", label: "Order processing", done: processing, at: null },
+    { key: "out_for_delivery", label: "Out for delivery", done: outForDelivery, at: null },
     { key: "completed", label: "Completed", done: completed, at: null },
   ];
   const current = steps.findIndex((step) => !step.done);

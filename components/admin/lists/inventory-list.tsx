@@ -54,7 +54,7 @@ export function InventoryOverview({ merchantId }: { merchantId?: number }) {
     <div className="space-y-5">
       <StatGrid>
         <StatCard icon={Boxes} tone="purple" label="Stock items" value={summary.data?.total_items.toLocaleString() ?? "—"} hint={summary.data ? `${summary.data.total_available.toLocaleString()} units available` : undefined} loading={summary.isPending} />
-        <StatCard icon={Lock} tone="blue" label="Reserved units" value={summary.data?.total_reserved.toLocaleString() ?? "—"} hint="Held by pending / processing orders" loading={summary.isPending} />
+        <StatCard icon={Lock} tone="blue" label="Reserved units" value={summary.data?.total_reserved.toLocaleString() ?? "—"} hint="Held by pending, processing and out-for-delivery orders" loading={summary.isPending} />
         <StatCard icon={AlertTriangle} tone="amber" label="Low stock" value={summary.data?.low_stock.toLocaleString() ?? "—"} loading={summary.isPending} />
         <StatCard icon={PackageX} tone="red" label="Out of stock" value={summary.data?.out_of_stock.toLocaleString() ?? "—"} loading={summary.isPending} />
       </StatGrid>

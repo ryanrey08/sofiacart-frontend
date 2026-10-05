@@ -54,7 +54,8 @@ test("safeAdminRedirect only allows admin-area paths", () => {
 
 test("order status transitions mirror the backend state machine", () => {
   assert.deepEqual(ORDER_STATUS_TRANSITIONS.pending, ["processing", "cancelled"]);
-  assert.deepEqual(ORDER_STATUS_TRANSITIONS.processing, ["completed", "cancelled"]);
+  assert.deepEqual(ORDER_STATUS_TRANSITIONS.processing, ["out_for_delivery", "cancelled"]);
+  assert.deepEqual(ORDER_STATUS_TRANSITIONS.out_for_delivery, ["completed"]);
   assert.deepEqual(ORDER_STATUS_TRANSITIONS.completed, []);
   assert.deepEqual(ORDER_STATUS_TRANSITIONS.cancelled, []);
 });
