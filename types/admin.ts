@@ -119,6 +119,8 @@ export interface AdminMerchant {
   payments_sum_amount?: string | number | null;
   // Registration files present on the record; fetched through the admin documents endpoint.
   documents?: MerchantDocument[];
+  // Profile edits awaiting review. The fields above are always the approved (live) values.
+  pending_change_request?: { id: number; fields: string[]; submitted_at: string | null } | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -130,6 +132,8 @@ export interface MerchantStatusSummary {
   total: number;
   by_status: Record<MerchantStatus, number>;
   store_categories: string[];
+  // Merchants with a profile change request awaiting approval.
+  pending_profile_changes?: number;
 }
 
 // Owning store, included on platform-wide admin listings (IncludesMerchantSummary).

@@ -36,6 +36,8 @@ import type {
   SalesReportPoint,
 } from "@/types/admin";
 import type { InventorySummary } from "@/types";
+import type { MerchantChangeRequest } from "@/types/merchant-profile";
+import type { NotificationPage } from "@/types/notifications";
 import type { PaymentDetail, PaymentOrderBalance, PaymentSummary } from "@/types/payments";
 import type { RefundSummary } from "@/types/refunds";
 import type { TransactionSummary, TransactionTimelineEvent } from "@/types/transactions";
@@ -94,6 +96,29 @@ export async function updateMerchantStatus(id: number, payload: { status: Mercha
 export const fetchMerchantOnboardingHistory = (id: number, params: QueryParams) =>
   getPage<AdminAuditLog>(`/api/admin/merchants/${id}/onboarding-history`, params);
 export const fetchMerchantBilling = (id: number) => getData<MerchantBilling>(`/api/admin/merchants/${id}/billing`);
+
+// Merchant profile change requests — merchant edits awaiting approval before they reach the live record.
+export const fetchMerchantChangeRequests = (params: QueryParams) =>
+  getPage<MerchantChangeRequest>("/api/admin/merchant-change-requests", params);
+export const fetchMerchantChangeRequest = (id: number) => getData<MerchantChangeRequest>(`/api/admin/merchant-change-requests/${id}`);
+// Replacement document uploaded with a pending request (private; available until it is decided).
+export async function fetchMerchantChangeRequestFile(id: number, document: MerchantDocument) {
+  const response = await adminApi.get<Blob>(`/api/admin/merchant-change-requests/${id}/files/${document}`, { responseType: "blob" });
+  return response.data;
+}
+
+// In-app notifications for the signed-in admin.
+export const fetchAdminNotifications = async (params: QueryParams = {}) =>
+  (await adminApi.get<NotificationPage>("/api/admin/notifications", { params: cleanParams(params) })).data;
+export const markAdminNotificationRead = (id: string) => adminApi.post(`/api/admin/notifications/${id}/read`);
+export const markAllAdminNotificationsRead = () => adminApi.post("/api/admin/notifications/read-all");
+export async function reviewMerchantChangeRequest(id: number, payload: { status: "approved" | "rejected"; reason?: string }) {
+  const response = await adminApi.patch<{ data: MerchantChangeRequest; meta: { merchant: AdminMerchant } }>(
+    `/api/admin/merchant-change-requests/${id}/status`,
+    payload,
+  );
+  return response.data;
+}
 // Registration documents are served through the authenticated admin API, never by public URL.
 export async function fetchMerchantDocument(id: number, document: MerchantDocument) {
   const response = await adminApi.get<Blob>(`/api/admin/merchants/${id}/documents/${document}`, { responseType: "blob" });

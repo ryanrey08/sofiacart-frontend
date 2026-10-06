@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { ArrowLeftRight, Boxes, ChartColumn, CreditCard, LayoutDashboard, Package, ReceiptText, RotateCcw, ShoppingCart, Users, X, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, Boxes, ChartColumn, CreditCard, LayoutDashboard, Package, ReceiptText, RotateCcw, ShoppingCart, Store, UserRound, Users, X, type LucideIcon } from "lucide-react";
 import { useMerchantIdentity } from "@/components/merchant/use-merchant-identity";
 import { isNavItemActive } from "@/lib/merchant-identity";
 import { cn } from "@/lib/utils";
 
-// Only routes that exist under app/(dashboard) are listed. Store profile, settings and
-// promotions/vouchers modules do not exist in this frontend yet, so they are intentionally omitted.
+// Only routes that exist under app/(dashboard) are listed. Settings and promotions/vouchers
+// modules do not exist in this frontend yet, so they are intentionally omitted.
 type NavItem = { href: string; label: string; icon: LucideIcon; children?: Array<{ href: string; label: string }> };
 
 const sections: Array<{ title: string; items: NavItem[] }> = [
@@ -50,6 +50,13 @@ const sections: Array<{ title: string; items: NavItem[] }> = [
       { href: "/reports/customers", label: "Customer Reports", icon: Users },
       { href: "/reports/products", label: "Product Reports", icon: ReceiptText },
       { href: "/reports/inventory", label: "Inventory Reports", icon: Boxes },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { href: "/account", label: "My Account", icon: UserRound },
+      { href: "/store-profile", label: "Store Profile", icon: Store },
     ],
   },
 ];

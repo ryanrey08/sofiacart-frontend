@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Ban, Clock3, Eye, RotateCcw, Store, Users } from "lucide-react";
+import { Ban, Clock3, Eye, FilePen, RotateCcw, Store, Users } from "lucide-react";
 import { MERCHANT_STATUSES, merchantStatusLabel } from "@/components/admin/merchant-status-form";
 import { RequirePermission } from "@/components/admin/require-permission";
 import {
@@ -40,7 +40,7 @@ const SORTS = [
   { value: "collected_desc", label: "Most collected" },
 ];
 
-const EMPTY_FILTERS = { search: "", status: "", store_category: "", date_from: "", date_to: "", sort: "newest" };
+const EMPTY_FILTERS = { search: "", status: "", store_category: "", date_from: "", date_to: "", sort: "newest", has_pending_changes: "" };
 
 export default function AdminMerchantsPage() {
   return (
@@ -90,6 +90,18 @@ function MerchantList() {
       </StatGrid>
       {summary.isError ? <ErrorState error={summary.error} title="Merchant totals unavailable" onRetry={() => void summary.refetch()} /> : null}
 
+      {summary.data?.pending_profile_changes ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span className="inline-flex items-center gap-2">
+            <FilePen className="h-4 w-4" />
+            {summary.data.pending_profile_changes} merchant{summary.data.pending_profile_changes === 1 ? " has" : "s have"} profile changes awaiting approval.
+          </span>
+          <Button size="sm" variant="outline" onClick={() => update("has_pending_changes", "1")}>
+            Show merchants
+          </Button>
+        </div>
+      ) : null}
+
       <Panel icon={Store} title="Merchants List" description="Search, filter and sort merchants. Open a merchant to review its store, catalog and finances.">
         <FilterBar bare>
           <SearchField
@@ -106,6 +118,12 @@ function MerchantList() {
                   {merchantStatusLabel(value)}
                 </option>
               ))}
+            </SelectInput>
+          </Field>
+          <Field label="Profile changes" htmlFor="merchant-changes-filter">
+            <SelectInput id="merchant-changes-filter" value={filters.has_pending_changes} onChange={(event) => update("has_pending_changes", event.target.value)}>
+              <option value="">All merchants</option>
+              <option value="1">Pending approval</option>
             </SelectInput>
           </Field>
           <Field label="Category" htmlFor="merchant-category-filter">
@@ -189,7 +207,24 @@ function MerchantList() {
                   ),
                 },
                 { key: "email", header: "Email", render: (row) => row.user?.email ?? row.contact_email ?? "—" },
-                { key: "status", header: "Status", render: (row) => <StatusPill status={row.status} /> },
+                {
+                  key: "status",
+                  header: "Status",
+                  render: (row) => (
+                    <div className="space-y-1">
+                      <StatusPill status={row.status} />
+                      {row.pending_change_request ? (
+                        <Link
+                          href={`/admin/merchants/${row.id}`}
+                          className="flex w-fit items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 hover:bg-amber-200"
+                        >
+                          <FilePen className="h-3 w-3" />
+                          Profile changes pending
+                        </Link>
+                      ) : null}
+                    </div>
+                  ),
+                },
                 {
                   key: "activity",
                   header: "Products / Orders",

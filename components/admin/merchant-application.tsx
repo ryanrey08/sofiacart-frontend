@@ -118,7 +118,8 @@ export function MerchantDocuments({ merchant }: { merchant: AdminMerchant }) {
     <div className="grid gap-3 sm:grid-cols-2">
       {documents.map((document) => (
         <PrivateFile
-          key={document}
+          // Re-fetch when the record changes: an approved profile change can replace a document.
+          key={`${document}-${merchant.updated_at}`}
           label={DOCUMENT_LABELS[document]}
           name={`${merchant.store_slug ?? merchant.id}-${document}`}
           load={() => fetchMerchantDocument(merchant.id, document)}

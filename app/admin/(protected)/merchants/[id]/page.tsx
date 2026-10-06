@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Boxes, CircleDollarSign, ClipboardList, CreditCard, Package, Receipt, RotateCcw, ShoppingCart, Store, Users } from "lucide-react";
+import { ArrowLeft, Boxes, CircleDollarSign, ClipboardList, Clock, CreditCard, FilePen, Package, Receipt, RotateCcw, ShoppingCart, Store, Users } from "lucide-react";
 import { CustomersList } from "@/components/admin/lists/customers-list";
 import { FinanceOverview } from "@/components/admin/lists/finance-list";
 import { InventoryOverview } from "@/components/admin/lists/inventory-list";
@@ -13,6 +13,7 @@ import { ProductsList } from "@/components/admin/lists/products-list";
 import { ReturnsList } from "@/components/admin/lists/returns-list";
 import { MerchantApplicationDetails, MerchantDocuments, OnboardingHistory, OnboardingProgress } from "@/components/admin/merchant-application";
 import { MerchantBillingPanel } from "@/components/admin/merchant-billing-panel";
+import { PendingProfileChangeReview, ProfileChangeHistory } from "@/components/admin/merchant-change-review";
 import { MerchantStatusForm } from "@/components/admin/merchant-status-form";
 import { useAdminSession } from "@/components/admin/admin-session";
 import { Can, RequirePermission } from "@/components/admin/require-permission";
@@ -73,6 +74,16 @@ function MerchantDetail() {
         actions={
           <>
             <StatusPill status={data.status} />
+            {data.pending_change_request ? (
+              <button
+                type="button"
+                onClick={() => setTab("overview")}
+                className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-200"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Profile changes pending
+              </button>
+            ) : null}
             <Button asChild variant="outline">
               <Link href="/admin/merchants">
                 <ArrowLeft className="h-4 w-4" />
@@ -122,6 +133,21 @@ function MerchantOverview({ merchant, onUpdated }: { merchant: AdminMerchant; on
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,1fr)]">
       <div className="space-y-5">
+        {merchant.pending_change_request ? (
+          <Panel
+            icon={FilePen}
+            title="Pending profile changes"
+            description="The merchant requested changes to their approved details. Compare and approve or reject them."
+            className="border-amber-200"
+          >
+            <PendingProfileChangeReview
+              key={merchant.pending_change_request.id}
+              merchant={merchant}
+              changeRequestId={merchant.pending_change_request.id}
+              onDecided={onUpdated}
+            />
+          </Panel>
+        ) : null}
         <Panel icon={ClipboardList} title="Onboarding progress">
           <OnboardingProgress merchant={merchant} />
         </Panel>
@@ -140,6 +166,9 @@ function MerchantOverview({ merchant, onUpdated }: { merchant: AdminMerchant; on
         </Can>
         <Panel title="Approval / rejection history">
           <OnboardingHistory merchantId={merchant.id} />
+        </Panel>
+        <Panel title="Profile change requests">
+          <ProfileChangeHistory merchantId={merchant.id} />
         </Panel>
       </div>
     </div>

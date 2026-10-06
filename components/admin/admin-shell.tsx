@@ -24,6 +24,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAdminSession } from "@/components/admin/admin-session";
+import { NotificationBell } from "@/components/notification-bell";
+import { fetchAdminNotifications, markAdminNotificationRead, markAllAdminNotificationsRead } from "@/lib/api/admin";
 import { activeNavHref, sidebarEntries, type AdminNavEntry, type AdminNavIcon } from "@/lib/admin/permissions";
 import { cn } from "@/lib/utils";
 
@@ -269,40 +271,48 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </nav>
             </div>
           </div>
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <button className="flex items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-brand-600 text-sm font-semibold text-white">{initials(user.name) || "SA"}</AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-semibold text-navy-900">{user.name}</p>
-                  <p className="max-w-48 truncate text-xs text-muted-foreground">{roleNames}</p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-slate-400" />
-              </button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content align="end" className="z-50 min-w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-soft">
-                <div className="px-3 py-2 text-xs text-muted-foreground">{user.email}</div>
-                <DropdownMenu.Item asChild className="cursor-pointer rounded-lg px-3 py-2 text-sm outline-none hover:bg-brand-50 focus:bg-brand-50">
-                  <Link href="/admin/sessions">Active sessions</Link>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  className="cursor-pointer rounded-lg px-3 py-2 text-sm outline-none hover:bg-brand-50 focus:bg-brand-50"
-                  onSelect={() => void logoutAll()}
-                >
-                  Sign out of all devices
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  className="cursor-pointer rounded-lg px-3 py-2 text-sm text-red-600 outline-none hover:bg-red-50 focus:bg-red-50"
-                  onSelect={() => void logout()}
-                >
-                  Sign out
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
+          <div className="flex shrink-0 items-center gap-2">
+            <NotificationBell
+              queryKey={["admin", "notifications"]}
+              fetchPage={fetchAdminNotifications}
+              markRead={markAdminNotificationRead}
+              markAllRead={markAllAdminNotificationsRead}
+            />
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="flex items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-brand-600 text-sm font-semibold text-white">{initials(user.name) || "SA"}</AvatarFallback>
+                  </Avatar>
+                  <div className="hidden sm:block">
+                    <p className="text-sm font-semibold text-navy-900">{user.name}</p>
+                    <p className="max-w-48 truncate text-xs text-muted-foreground">{roleNames}</p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content align="end" className="z-50 min-w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-soft">
+                  <div className="px-3 py-2 text-xs text-muted-foreground">{user.email}</div>
+                  <DropdownMenu.Item asChild className="cursor-pointer rounded-lg px-3 py-2 text-sm outline-none hover:bg-brand-50 focus:bg-brand-50">
+                    <Link href="/admin/sessions">Active sessions</Link>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-lg px-3 py-2 text-sm outline-none hover:bg-brand-50 focus:bg-brand-50"
+                    onSelect={() => void logoutAll()}
+                  >
+                    Sign out of all devices
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-lg px-3 py-2 text-sm text-red-600 outline-none hover:bg-red-50 focus:bg-red-50"
+                    onSelect={() => void logout()}
+                  >
+                    Sign out
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
         </header>
         <main id="admin-main" tabIndex={-1} className="mx-auto flex max-w-[1500px] flex-col gap-5 p-4 focus:outline-none sm:p-6">
           {children}

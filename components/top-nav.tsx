@@ -1,11 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronDown, LogOut, Menu, Store } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Store, UserRound } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useMerchantIdentity } from "@/components/merchant/use-merchant-identity";
+import { NotificationBell } from "@/components/notification-bell";
 import { clearStoredAuth } from "@/lib/auth";
+import {
+  MERCHANT_NOTIFICATIONS_KEY,
+  fetchMerchantNotifications,
+  markAllMerchantNotificationsRead,
+  markMerchantNotificationRead,
+} from "@/lib/notifications";
 
 export function TopNav({ menuOpen, onMenuClick, menuId }: { menuOpen: boolean; onMenuClick: () => void; menuId: string }) {
   const router = useRouter();
@@ -36,39 +43,62 @@ export function TopNav({ menuOpen, onMenuClick, menuId }: { menuOpen: boolean; o
         </div>
       </div>
 
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger asChild>
-          <button type="button" className="flex items-center gap-2 rounded-xl px-1.5 py-1 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-3 sm:px-2" aria-label={`Account menu for ${identity.displayName}`}>
-            <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-brand-600 text-white">{identity.initials}</AvatarFallback>
-            </Avatar>
-            <span className="hidden min-w-0 sm:block">
-              <span className="block max-w-[12rem] truncate text-sm font-semibold text-navy-900">{identity.displayName}</span>
-              <span className="block text-xs text-muted-foreground">{identity.roleLabel}</span>
-            </span>
-            <ChevronDown aria-hidden="true" className="h-4 w-4 text-slate-400" />
-          </button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content align="end" sideOffset={8} className="z-50 min-w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-soft">
-            <div className="px-3 py-2">
-              <p className="truncate text-sm font-semibold text-navy-900">{identity.displayName}</p>
-              {identity.email ? <p className="truncate text-xs text-muted-foreground">{identity.email}</p> : null}
-            </div>
-            <DropdownMenu.Separator className="my-1 h-px bg-slate-100" />
-            <DropdownMenu.Item
-              className="flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 outline-none data-[highlighted]:bg-red-50"
-              onSelect={() => {
-                clearStoredAuth();
-                router.push("/login");
-              }}
-            >
-              <LogOut aria-hidden="true" className="h-4 w-4" />
-              Sign out
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
+      <div className="flex shrink-0 items-center gap-2">
+        <NotificationBell
+          queryKey={MERCHANT_NOTIFICATIONS_KEY}
+          fetchPage={fetchMerchantNotifications}
+          markRead={markMerchantNotificationRead}
+          markAllRead={markAllMerchantNotificationsRead}
+        />
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button type="button" className="flex items-center gap-2 rounded-xl px-1.5 py-1 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-3 sm:px-2" aria-label={`Account menu for ${identity.displayName}`}>
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className="bg-brand-600 text-white">{identity.initials}</AvatarFallback>
+              </Avatar>
+              <span className="hidden min-w-0 sm:block">
+                <span className="block max-w-[12rem] truncate text-sm font-semibold text-navy-900">{identity.displayName}</span>
+                <span className="block text-xs text-muted-foreground">{identity.roleLabel}</span>
+              </span>
+              <ChevronDown aria-hidden="true" className="h-4 w-4 text-slate-400" />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content align="end" sideOffset={8} className="z-50 min-w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-soft">
+              <div className="px-3 py-2">
+                <p className="truncate text-sm font-semibold text-navy-900">{identity.displayName}</p>
+                {identity.email ? <p className="truncate text-xs text-muted-foreground">{identity.email}</p> : null}
+              </div>
+              <DropdownMenu.Separator className="my-1 h-px bg-slate-100" />
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-50"
+                onSelect={() => router.push("/account")}
+              >
+                <UserRound aria-hidden="true" className="h-4 w-4" />
+                My account
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-50"
+                onSelect={() => router.push("/store-profile")}
+              >
+                <Store aria-hidden="true" className="h-4 w-4" />
+                Store profile
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="my-1 h-px bg-slate-100" />
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 outline-none data-[highlighted]:bg-red-50"
+                onSelect={() => {
+                  clearStoredAuth();
+                  router.push("/login");
+                }}
+              >
+                <LogOut aria-hidden="true" className="h-4 w-4" />
+                Sign out
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </div>
     </header>
   );
 }
