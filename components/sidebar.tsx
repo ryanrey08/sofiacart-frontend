@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeftRight, Boxes, ChartColumn, CreditCard, LayoutDashboard, Package, ReceiptText, RotateCcw, ShoppingCart, Store, UserRound, Users, X, type LucideIcon } from "lucide-react";
 import { useMerchantIdentity } from "@/components/merchant/use-merchant-identity";
+import { fetchOwnDocument } from "@/lib/hooks/merchant-profile";
 import { isNavItemActive } from "@/lib/merchant-identity";
 import { cn } from "@/lib/utils";
 
@@ -67,17 +69,27 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-3 rounded-xl px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunset-300">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sunset-500 to-brand-500 text-base font-bold text-white shadow-lg shadow-black/20">SC</span>
-        <span>
-          <span className="block text-lg font-bold leading-tight text-white">SofiaCart</span>
-          <span className="block text-xs text-white/60">Merchant Center</span>
-        </span>
+      {/* Official SofiaCart platform logo (from the Canva brand design). */}
+      <Link
+        href="/dashboard"
+        onClick={onNavigate}
+        aria-label="SofiaCart — go to dashboard"
+        className="block rounded-xl px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunset-300"
+      >
+        <Image
+          src="/brand/sofiacart-logo.png"
+          alt="SofiaCart — Everything. In One Cart."
+          width={600}
+          height={196}
+          priority
+          className="h-auto w-full rounded-lg object-contain"
+        />
       </Link>
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.07] p-3">
         <div className="flex items-center gap-3">
-          <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-brand-700">{identity.initials}</span>
+          {/* The logged-in merchant's own uploaded store logo (not the SofiaCart platform logo). */}
+          <MerchantStoreLogo fallbackInitials={identity.initials} />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">{identity.displayName}</p>
             <p className="truncate text-xs text-white/60">{identity.merchantLabel}</p>
@@ -158,7 +170,58 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         ))}
       </nav>
+
+      {/* Powered-by footer: BlitzDev IT Consultancy, the agency behind SofiaCart. */}
+      <div className="mt-4 shrink-0 border-t border-white/10 pt-4">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">Powered by</p>
+        <span className="mt-2 inline-flex rounded-lg bg-white px-2.5 py-1.5 shadow-sm">
+          <Image src="/brand/blitzdev-logo.png" alt="BlitzDev IT Consultancy" width={1550} height={348} className="h-4 w-auto" />
+        </span>
+      </div>
     </>
+  );
+}
+
+/**
+ * The signed-in merchant's uploaded store logo, loaded from the authenticated API and shown in the
+ * account card. Falls back to the merchant initials when no logo has been uploaded yet.
+ */
+function MerchantStoreLogo({ fallbackInitials }: { fallbackInitials: string }) {
+  const [url, setUrl] = useState("");
+
+  // Mirrors the PrivateEvidence pattern: the authenticated blob is fetched once and shown as an
+  // object URL; a 404 (no logo uploaded) simply leaves the initials fallback in place.
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+    fetchOwnDocument("store_logo")
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      })
+      .catch(() => {
+        if (active) setUrl("");
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, []);
+
+  if (url) {
+    return (
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
+        {/* object-contain keeps the uploaded logo's aspect ratio; unoptimized because it's a blob URL. */}
+        <Image src={url} alt="" width={40} height={40} unoptimized className="h-full w-full object-contain" />
+      </span>
+    );
+  }
+
+  return (
+    <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-brand-700">
+      {fallbackInitials}
+    </span>
   );
 }
 
