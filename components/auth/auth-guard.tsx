@@ -4,6 +4,10 @@ import type { ReactNode } from "react";
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AUTH_CHANGE_EVENT, getStoredAuth } from "@/lib/auth";
+import { EMAIL_UNVERIFIED_EVENT, needsEmailVerification } from "@/lib/email-verification";
+import { refreshStoredUser } from "@/lib/hooks/email-verification";
+
+type AuthState = "signed-out" | "email-unverified" | "ready";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -14,23 +18,40 @@ function subscribe(onChange: () => void) {
   };
 }
 
-function getAuthSnapshot(): boolean {
-  return getStoredAuth() !== null;
+function getAuthSnapshot(): AuthState {
+  const auth = getStoredAuth();
+  if (!auth) return "signed-out";
+  return needsEmailVerification(auth.user) ? "email-unverified" : "ready";
 }
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isAuthenticated = useSyncExternalStore<boolean | undefined>(subscribe, getAuthSnapshot, () => undefined); // undefined during SSR/hydration keeps markup identical
+  const authState = useSyncExternalStore<AuthState | undefined>(subscribe, getAuthSnapshot, () => undefined); // undefined during SSR/hydration keeps markup identical
+  const isSignedIn = authState !== undefined && authState !== "signed-out";
 
   useEffect(() => {
-    if (isAuthenticated === false) {
+    if (authState === "signed-out") {
       const redirect = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
       router.replace(`/login${redirect}`);
+    } else if (authState === "email-unverified") {
+      router.replace("/verify-email");
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [authState, pathname, router]);
 
-  if (!isAuthenticated) {
+  // The stored session may predate a verification or an email change; the backend is the source of truth.
+  useEffect(() => {
+    if (!isSignedIn) return;
+    void refreshStoredUser().catch(() => undefined);
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    const onEmailUnverified = () => router.replace("/verify-email");
+    window.addEventListener(EMAIL_UNVERIFIED_EVENT, onEmailUnverified);
+    return () => window.removeEventListener(EMAIL_UNVERIFIED_EVENT, onEmailUnverified);
+  }, [router]);
+
+  if (authState !== "ready") {
     return null;
   }
 

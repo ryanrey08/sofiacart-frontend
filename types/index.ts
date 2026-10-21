@@ -20,6 +20,8 @@ export interface AuthUser {
   name: string;
   email: string;
   role: "admin" | "merchant";
+  /** Absent in sessions stored before email verification existed. */
+  email_verified?: boolean;
   merchant?: { id: number; status?: string } | null;
 }
 
@@ -30,10 +32,13 @@ export interface AuthResponse {
 
 export interface MerchantRegistrationResponse {
   message: string;
+  verification_email_sent: boolean;
+  verification_expires_in_minutes: number;
   user: {
     id: number;
     name: string;
     email: string;
+    email_verified: boolean;
     merchant?: { id: number; status?: string } | null;
   };
   merchant: {

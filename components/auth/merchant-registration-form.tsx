@@ -14,8 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StepperNav, type StepItem } from "@/components/stepper-nav";
+import { VerificationEmailSentCard } from "@/components/auth/email-verification";
 import api from "@/lib/api/axios";
 import { getStoredAuth } from "@/lib/auth";
+import { rememberPendingVerificationEmail } from "@/lib/email-verification";
 import { buildMerchantRegistrationFormData } from "@/lib/merchant-registration";
 import { cn, slugify } from "@/lib/utils";
 import {
@@ -338,6 +340,7 @@ export function MerchantRegistrationForm() {
         "/api/merchant/register",
         buildMerchantRegistrationFormData(values),
       );
+      rememberPendingVerificationEmail(response.data.user.email);
       setRegistrationResponse(response.data);
     } catch (error: unknown) {
       if (isAxiosError<{ message?: string; errors?: Record<string, string | string[]> }>(error)) {
@@ -440,27 +443,22 @@ export function MerchantRegistrationForm() {
   if (registrationResponse) {
     const status = registrationResponse.merchant.status;
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f5fb] px-4 py-8">
-        <Card className="w-full max-w-2xl">
-          <CardHeader className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-green-700">
-              <CheckCircle2 aria-hidden="true" className="h-7 w-7" />
-            </div>
-            <CardTitle className="text-3xl text-navy-900">Registration submitted</CardTitle>
-            <CardDescription>{registrationResponse.message}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5 text-center">
-            <p className="text-sm text-slate-700">
-              Application status: <strong className="capitalize">{status.replaceAll("_", " ")}</strong>
-              {status === "pending" ? " — your application is awaiting approval." : ""}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Account created for {registrationResponse.user.name} ({registrationResponse.user.email}).
-            </p>
-            <Button asChild><Link href="/login">Continue to sign in</Link></Button>
-          </CardContent>
-        </Card>
-      </div>
+      <VerificationEmailSentCard
+        email={registrationResponse.user.email}
+        emailSent={registrationResponse.verification_email_sent}
+        expiresInMinutes={registrationResponse.verification_expires_in_minutes}
+      >
+        <div className="space-y-2 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
+          <p>
+            Application status: <strong className="capitalize">{status.replaceAll("_", " ")}</strong>
+            {status === "pending" ? " — your application is awaiting approval." : ""}
+          </p>
+          <p className="text-muted-foreground">
+            Email verification and store approval are separate steps. Verify your email to sign in to your dashboard; the SofiaCart team reviews your application either way.
+          </p>
+        </div>
+        <Button asChild variant="ghost"><Link href="/login">Continue to sign in</Link></Button>
+      </VerificationEmailSentCard>
     );
   }
 

@@ -26,7 +26,8 @@ export function useUpdateAccount() {
       queryClient.setQueryData(ACCOUNT_KEY, user);
       // Keep the signed-in identity shown in the shell (name, email) in sync with the server.
       const stored = getStoredAuth();
-      if (stored) setStoredAuth({ token: stored.token, user: { ...stored.user, name: user.name, email: user.email } });
+      // A changed email is unverified again; the dashboard guard then sends the merchant to /verify-email.
+      if (stored) setStoredAuth({ token: stored.token, user: { ...stored.user, name: user.name, email: user.email, email_verified: user.email_verified } });
     },
   });
 }

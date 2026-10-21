@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import api from "@/lib/api/axios";
 import { setStoredAuth } from "@/lib/auth";
+import { needsEmailVerification } from "@/lib/email-verification";
 import { loginSchema, type LoginSchema } from "@/lib/validation/auth";
 import type { AuthResponse } from "@/types";
 
@@ -43,7 +44,7 @@ export function LoginForm({
     try {
       const response = await api.post<AuthResponse>("/api/auth/login", values);
       setStoredAuth(response.data);
-      router.push(redirectTo);
+      router.push(needsEmailVerification(response.data.user) ? "/verify-email" : redirectTo);
     } catch (error: unknown) {
       if (typeof error === "object" && error !== null && "response" in error) {
         setFormError("Invalid credentials. Please check your email and password.");

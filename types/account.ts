@@ -7,6 +7,8 @@ export interface AccountUser {
   role: "merchant" | "admin";
   name: string;
   email: string;
+  email_verified: boolean;
+  email_verified_at: string | null;
   phone: string | null;
   created_at: string | null;
   updated_at: string | null;
