@@ -285,6 +285,53 @@ export interface ProductVariantResource {
   sort_order: number;
 }
 
+// Customer-facing outcome computed by sofiacart-backend Product::listingStatus().
+export type ProductListingStatus =
+  | "published"
+  | "out_of_stock"
+  | "hidden"
+  | "store_unavailable"
+  | "draft"
+  | "pending_approval"
+  | "rejected"
+  | "archived";
+
+// Approval bookkeeping; set only by the Super Admin approval workflow.
+export interface ProductApproval {
+  is_approved: boolean;
+  submitted_at: string | null;
+  approved_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by?: { id: number; name: string } | null;
+  rejection_reason: string | null;
+}
+
+export interface ProductChangeComparisonRow {
+  field: string;
+  current: unknown;
+  original: unknown;
+  requested: unknown;
+  changed: boolean;
+}
+
+// Mirrors sofiacart-backend ProductChangeRequestResource: a pending edit to an approved product.
+export interface ProductChangeRequestResource {
+  id: number;
+  product_id: number;
+  status: "pending" | "approved" | "rejected" | "withdrawn";
+  fields: string[];
+  changes: Record<string, unknown>;
+  original: Record<string, unknown>;
+  images: { paths: string[]; main_index: number | null } | null;
+  comparison?: ProductChangeComparisonRow[];
+  rejection_reason: string | null;
+  submitted_by?: { id: number; name: string } | null;
+  reviewed_by?: { id: number; name: string } | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  withdrawn_at: string | null;
+}
+
 export interface ProductResource {
   id: number;
   merchant_id: number;
@@ -296,6 +343,11 @@ export interface ProductResource {
   short_description: string | null;
   full_description: string | null;
   status: ProductStatus;
+  // Approval fields are optional so responses from backends without the workflow still parse.
+  approval?: ProductApproval;
+  listing_status?: ProductListingStatus;
+  pending_change_request?: ProductChangeRequestResource | null;
+  latest_change_request?: ProductChangeRequestResource | null;
   price: string | number;
   regular_price: string | number | null;
   sale_price: string | number | null;

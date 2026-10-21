@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, Package, PackageX, Pencil, Plus, ShoppingBag, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, Package, PackageX, Pencil, Plus, ShoppingBag, SlidersHorizontal, Trash2, X } from "lucide-react";
 import {
   AccessDenied,
   EmptyState,
@@ -30,9 +30,19 @@ import {
   useProductCategories,
   useProductMetrics,
   useProducts,
+  useSubmitProduct,
   useUpdateProductStatus,
+  useWithdrawProduct,
 } from "@/lib/hooks/products";
 import { describeApiError, primaryProductImage } from "@/lib/merchant-products";
+import {
+  LISTING_STATUS_HINTS,
+  LISTING_STATUS_LABELS,
+  PRODUCT_SAVE_MESSAGES,
+  isApproved,
+  productRowActions,
+  type ProductRowAction,
+} from "@/lib/product-approval";
 import { PRODUCT_STATUSES, PRODUCT_STOCK_STATUSES } from "@/lib/validation/product";
 import { cn } from "@/lib/utils";
 import type { ProductResource, ProductStatus, ProductStockStatus } from "@/types";
@@ -75,7 +85,7 @@ function ProductsContent() {
   const [notice, setNotice] = useState<NoticeState | null>(() => {
     const action = searchParams.get("action");
     if (!action) return null;
-    return { tone: "success", text: action === "updated" ? "Your product was updated." : "Your product was created." };
+    return { tone: "success", text: PRODUCT_SAVE_MESSAGES[action as keyof typeof PRODUCT_SAVE_MESSAGES] ?? PRODUCT_SAVE_MESSAGES.updated };
   });
   const debouncedSearch = useDebouncedValue(search);
 
@@ -91,8 +101,10 @@ function ProductsContent() {
   const categories = useProductCategories();
   const statusMutation = useUpdateProductStatus();
   const deleteMutation = useDeleteProduct();
+  const submitMutation = useSubmitProduct();
+  const withdrawMutation = useWithdrawProduct();
   const rows = useMemo(() => products.data?.data ?? [], [products.data]);
-  const busy = statusMutation.isPending || deleteMutation.isPending;
+  const busy = statusMutation.isPending || deleteMutation.isPending || submitMutation.isPending || withdrawMutation.isPending;
   const hasFilters = Boolean(search || status || categoryId || stockStatus);
   // Selections for rows that left the page (filters, pagination, deletion) are simply ignored.
   const selectedRows = useMemo(() => rows.filter((row) => selected.includes(row.id)), [rows, selected]);
@@ -113,6 +125,24 @@ function ProductsContent() {
     );
   };
 
+  // Submit/withdraw go through the approval endpoints; only an admin can approve.
+  const runAction = (product: ProductResource, action: ProductRowAction) => {
+    if (action.kind === "status") return changeStatus(product, action.status);
+    setNotice(null);
+    const mutation = action.kind === "submit" ? submitMutation : withdrawMutation;
+    mutation.mutate(product.id, {
+      onSuccess: (updated) =>
+        setNotice({
+          tone: "success",
+          text:
+            action.kind === "submit"
+              ? `${updated.name} was submitted for approval.`
+              : `${updated.name} was withdrawn from review and is now a draft you can edit.`,
+        }),
+      onError: (error) => setNotice({ tone: "error", text: describeApiError(error, "The product could not be updated.") }),
+    });
+  };
+
   const remove = (product: ProductResource) => {
     if (!window.confirm(`Delete ${product.name}? This permanently removes the product.`)) return;
     setNotice(null);
@@ -127,7 +157,10 @@ function ProductsContent() {
 
   const bulkArchive = async () => {
     setNotice(null);
-    const targets = selectedRows.filter((row) => row.status !== "archived");
+    // Products under review cannot be archived until they are withdrawn.
+    const targets = selectedRows.filter((row) =>
+      productRowActions(row).some((action) => action.kind === "status" && action.status === "archived"),
+    );
     if (!targets.length) return;
     try {
       for (const target of targets) await statusMutation.mutateAsync({ id: target.id, status: "archived" });
@@ -167,9 +200,16 @@ function ProductsContent() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <MetricCard label="Total products" value={metrics.total} icon={<ShoppingBag className="h-4 w-4" />} isPending={metrics.isPending} />
         <MetricCard label="Active" value={metrics.active} icon={<Package className="h-4 w-4" />} isPending={metrics.isPending} tone="success" />
+        <MetricCard
+          label="Awaiting review"
+          value={metrics.pending_approval}
+          icon={<ClipboardCheck className="h-4 w-4" />}
+          isPending={metrics.isPending}
+          tone="warning"
+        />
         <MetricCard
           label="Low stock"
           value={metrics.low_stock}
@@ -388,7 +428,7 @@ function ProductsContent() {
                               <StockPill stockStatus={row.stock_status} />
                             </td>
                             <td className="px-3 py-3">
-                              <StatusPill status={row.status} />
+                              <ApprovalStatus product={row} />
                             </td>
                             <td className="px-3 py-3">
                               <div className="flex flex-wrap justify-end gap-1.5">
@@ -399,14 +439,11 @@ function ProductsContent() {
                                 <Button size="sm" variant="outline" onClick={() => setAdjusting(row)}>
                                   Stock
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={busy}
-                                  onClick={() => changeStatus(row, row.status === "archived" ? "draft" : "archived")}
-                                >
-                                  {row.status === "archived" ? "Restore" : "Archive"}
-                                </Button>
+                                {productRowActions(row).map((action) => (
+                                  <Button key={action.kind + action.label} size="sm" variant="outline" disabled={busy} onClick={() => runAction(row, action)}>
+                                    {action.label}
+                                  </Button>
+                                ))}
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -515,4 +552,25 @@ function StockPill({ stockStatus }: { stockStatus: ProductStockStatus | undefine
     out_of_stock: "bg-red-50 text-red-700",
   };
   return <span className={cn("mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", tones[stockStatus])}>{labels[stockStatus]}</span>;
+}
+
+// Approval status plus what customers see (approved products) or why it is not listed.
+function ApprovalStatus({ product }: { product: ProductResource }) {
+  const listing = product.listing_status;
+  return (
+    <div className="flex max-w-56 flex-col items-start gap-1">
+      <StatusPill status={product.status} />
+      {listing && isApproved(product) ? (
+        <span className="text-[11px] text-muted-foreground" title={LISTING_STATUS_HINTS[listing]}>
+          {LISTING_STATUS_LABELS[listing]}
+        </span>
+      ) : null}
+      {product.pending_change_request ? <StatusPill status="pending" label="Edits in review" /> : null}
+      {product.status === "rejected" && product.approval?.rejection_reason ? (
+        <span className="line-clamp-2 text-[11px] text-red-700" title={product.approval.rejection_reason}>
+          {product.approval.rejection_reason}
+        </span>
+      ) : null}
+    </div>
+  );
 }

@@ -6,6 +6,7 @@ import { AccessDenied, ErrorState, LoadingState } from "@/components/admin/ui";
 import { ProductForm } from "@/components/merchant/product-form";
 import { getStoredAuth } from "@/lib/auth";
 import { useProduct } from "@/lib/hooks/products";
+import { productSaveOutcome } from "@/lib/product-approval";
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>();
@@ -26,11 +27,15 @@ export default function EditProductPage() {
     return <ErrorState error={product.error} title="Unable to load product" onRetry={() => void product.refetch()} />;
   }
 
+  const hadPendingChange = Boolean(product.data.pending_change_request);
+
   return (
     <ProductForm
       product={product.data}
       onCancel={() => router.push("/sales/products")}
-      onSaved={(saved) => router.push(`/sales/products?saved=${saved.id}&action=updated`)}
+      onSaved={(saved) =>
+        router.push(`/sales/products?saved=${saved.id}&action=${productSaveOutcome(saved, hadPendingChange)}`)
+      }
     />
   );
 }

@@ -2,8 +2,9 @@ import { z } from "zod";
 
 // Mirrors sofiacart-backend StoreProductRequest / UpdateProductRequest and AdjustInventoryRequest.
 export const PRODUCT_STATUSES = ["pending_approval", "active", "draft", "archived", "rejected"] as const;
-// `rejected` is a moderation outcome; merchants only keep it when the product already has it.
-export const MERCHANT_SELECTABLE_PRODUCT_STATUSES = ["draft", "pending_approval", "active", "archived"] as const;
+// `active` is reached only through admin approval and `rejected` only through an admin decision;
+// which statuses a merchant may pick for a given product comes from lib/product-approval.ts.
+export const MERCHANT_SELECTABLE_PRODUCT_STATUSES = ["pending_approval", "draft", "archived"] as const;
 export const PRODUCT_STOCK_STATUSES = ["active", "low_stock", "out_of_stock"] as const;
 // images.* => ['image','mimes:jpg,jpeg,png,webp','max:5120']
 export const PRODUCT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];

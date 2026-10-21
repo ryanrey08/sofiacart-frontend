@@ -35,7 +35,7 @@ import type {
   RefundStatus,
   SalesReportPoint,
 } from "@/types/admin";
-import type { InventorySummary } from "@/types";
+import type { InventorySummary, ProductChangeRequestResource } from "@/types";
 import type { MerchantChangeRequest } from "@/types/merchant-profile";
 import type { NotificationPage } from "@/types/notifications";
 import type { PaymentDetail, PaymentOrderBalance, PaymentSummary } from "@/types/payments";
@@ -147,6 +147,34 @@ export async function updateProductStatus(id: number, status: ProductStatus) {
   return response.data.data;
 }
 export const deleteProduct = (id: number) => adminApi.delete(`/api/admin/products/${id}`);
+export interface ProductReviewHistoryEntry {
+  id: number;
+  action: string;
+  description: string | null;
+  reason: string | null;
+  fields: string[] | null;
+  actor: { id: number; name: string; role: string | null } | null;
+  created_at: string | null;
+}
+// Product detail plus the approval history (ProductsController::show, admin only).
+export async function fetchProductForReview(id: number) {
+  const response = await adminApi.get<{ data: AdminProduct; meta?: { review_history?: ProductReviewHistoryEntry[] } }>(`/api/admin/products/${id}`);
+  return { product: response.data.data, history: response.data.meta?.review_history ?? [] };
+}
+// Approve (publish) or reject a product awaiting approval; requires products.approve.
+// `submitted_at` is the submission the reviewer saw: a newer resubmission returns 409.
+export async function reviewProduct(id: number, payload: { status: "approved" | "rejected"; reason?: string; submitted_at?: string | null }) {
+  const response = await adminApi.patch<{ data: AdminProduct }>(`/api/admin/products/${id}/approval`, payload);
+  return response.data.data;
+}
+// Apply or discard a pending edit to an approved product; requires products.approve.
+export async function reviewProductChanges(changeRequestId: number, payload: { status: "approved" | "rejected"; reason?: string }) {
+  const response = await adminApi.patch<{ data: ProductChangeRequestResource; meta: { product: AdminProduct } }>(
+    `/api/admin/product-change-requests/${changeRequestId}/status`,
+    payload,
+  );
+  return response.data;
+}
 
 // Inventory (InventoryController; requires products.inventory.manage)
 export const fetchInventoryItems = (params: QueryParams) => getPage<AdminInventoryItem>("/api/admin/inventory", params);

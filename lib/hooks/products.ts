@@ -40,6 +40,7 @@ export function useProducts(params: ProductListParams) {
 const METRIC_FILTERS = [
   { key: "total", params: {} },
   { key: "active", params: { status: "active" } },
+  { key: "pending_approval", params: { status: "pending_approval" } },
   { key: "low_stock", params: { stock_status: "low_stock" } },
   { key: "out_of_stock", params: { stock_status: "out_of_stock" } },
 ] as const satisfies ReadonlyArray<{ key: string; params: ProductListParams }>;
@@ -47,6 +48,7 @@ const METRIC_FILTERS = [
 export interface ProductMetrics {
   total: number | null;
   active: number | null;
+  pending_approval: number | null;
   low_stock: number | null;
   out_of_stock: number | null;
   isPending: boolean;
@@ -146,6 +148,20 @@ export function useUpdateProductStatus() {
     onSuccess: (product) => sync(product),
   });
 }
+
+// Approval workflow (sofiacart-backend ProductsController submit/withdraw/withdrawChanges). Approving
+// is admin-only; merchants can only send a product for review or take it back.
+function useProductAction(path: (id: number) => string) {
+  const sync = useProductCacheSync();
+  return useMutation({
+    mutationFn: async (id: number) => (await api.post<{ data: ProductResource }>(path(id))).data.data,
+    onSuccess: (product) => sync(product),
+  });
+}
+
+export const useSubmitProduct = () => useProductAction((id) => `/api/v1/products/${id}/submit`);
+export const useWithdrawProduct = () => useProductAction((id) => `/api/v1/products/${id}/withdraw`);
+export const useWithdrawProductChanges = () => useProductAction((id) => `/api/v1/products/${id}/change-request/withdraw`);
 
 export function useDeleteProduct() {
   const queryClient = useQueryClient();

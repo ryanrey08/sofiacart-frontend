@@ -1,11 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { Pencil } from "lucide-react";
-import { ErrorState, LoadingState, StatusPill } from "@/components/admin/ui";
+import { ErrorState, LoadingState, Notice, StatusPill } from "@/components/admin/ui";
 import { ProductImage } from "@/components/merchant/product-image";
+import { ProductChangeComparison } from "@/components/product-change-comparison";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatMoney, humanize } from "@/lib/admin/format";
-import { useProduct, useProductInventoryLogs } from "@/lib/hooks/products";
+import {
+  useProduct,
+  useProductCategories,
+  useProductInventoryLogs,
+  useSubmitProduct,
+  useWithdrawProduct,
+  useWithdrawProductChanges,
+} from "@/lib/hooks/products";
+import { describeApiError } from "@/lib/merchant-products";
+import { LISTING_STATUS_HINTS, LISTING_STATUS_LABELS, changeRequestSummary, isApproved, listingStatusTone } from "@/lib/product-approval";
 import type { ProductResource } from "@/types";
 
 export function ProductDetails({ productId, onEdit }: { productId: number; onEdit?: () => void }) {
@@ -51,6 +62,8 @@ export function ProductDetails({ productId, onEdit }: { productId: number; onEdi
         </p>
         {data.short_description ? <p className="mt-2 text-sm text-slate-700">{data.short_description}</p> : null}
       </div>
+
+      <ApprovalPanel product={data} />
 
       <dl className="grid grid-cols-2 gap-2 text-sm">
         <Detail label="Category" value={data.category?.name ?? "—"} />
@@ -137,6 +150,87 @@ export function ProductDetails({ productId, onEdit }: { productId: number; onEdi
         </Button>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Where the product stands in the approval workflow, with the merchant's own actions: submit,
+ * withdraw a submission, or withdraw pending edits. Approval itself is admin-only.
+ */
+function ApprovalPanel({ product }: { product: ProductResource }) {
+  const submit = useSubmitProduct();
+  const withdraw = useWithdrawProduct();
+  const withdrawChanges = useWithdrawProductChanges();
+  const categories = useProductCategories();
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const busy = submit.isPending || withdraw.isPending || withdrawChanges.isPending;
+  const listing = product.listing_status;
+  const pending = product.pending_change_request;
+  const latest = product.latest_change_request;
+  const categoryName = (id: number) => categories.data?.data.find((category) => category.id === id)?.name;
+
+  const run = (mutation: typeof submit, success: string) => {
+    setNotice(null);
+    mutation.mutate(product.id, {
+      onSuccess: () => setNotice({ tone: "success", text: success }),
+      onError: (error) => setNotice({ tone: "error", text: describeApiError(error, "The product could not be updated.") }),
+    });
+  };
+
+  return (
+    <section className="space-y-3 rounded-xl border border-slate-200 p-3" aria-label="Approval status">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 className="text-sm font-semibold text-slate-700">Approval</h4>
+        {listing ? <StatusPill status={listingStatusTone(listing)} label={LISTING_STATUS_LABELS[listing]} /> : null}
+      </div>
+      {listing ? <p className="text-xs text-slate-600">{LISTING_STATUS_HINTS[listing]}</p> : null}
+
+      {product.status === "rejected" && product.approval?.rejection_reason ? (
+        <Notice tone="error">Reason: {product.approval.rejection_reason}</Notice>
+      ) : null}
+      {product.status === "pending_approval" && product.approval?.submitted_at ? (
+        <p className="text-xs text-muted-foreground">Submitted {formatDateTime(product.approval.submitted_at)}</p>
+      ) : null}
+      {isApproved(product) && product.approval?.approved_at ? (
+        <p className="text-xs text-muted-foreground">Approved {formatDateTime(product.approval.approved_at)}</p>
+      ) : null}
+
+      {!isApproved(product) && ["draft", "rejected", "archived"].includes(product.status) ? (
+        <Button type="button" size="sm" className="w-full" disabled={busy} onClick={() => run(submit, "Submitted for approval.")}>
+          {product.status === "rejected" ? "Resubmit for approval" : "Submit for approval"}
+        </Button>
+      ) : null}
+      {product.status === "pending_approval" ? (
+        <Button type="button" size="sm" variant="outline" className="w-full" disabled={busy} onClick={() => run(withdraw, "Withdrawn from review. You can edit it now.")}>
+          Withdraw from review to edit
+        </Button>
+      ) : null}
+
+      {pending ? (
+        <div className="space-y-2 rounded-lg bg-amber-50/60 p-2">
+          <p className="text-xs font-semibold text-amber-800">
+            Edits awaiting approval ({changeRequestSummary(pending)}) · submitted {formatDateTime(pending.submitted_at)}. Customers still see the approved version.
+          </p>
+          <ProductChangeComparison request={pending} categoryName={categoryName} />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="w-full"
+            disabled={busy}
+            onClick={() => run(withdrawChanges, "Pending edits withdrawn. The approved version is unchanged.")}
+          >
+            Withdraw pending edits
+          </Button>
+        </div>
+      ) : latest?.status === "rejected" ? (
+        <Notice tone="error">
+          Your last edits ({changeRequestSummary(latest)}) were not approved{latest.rejection_reason ? `: ${latest.rejection_reason}` : "."} The approved version is unchanged.
+        </Notice>
+      ) : null}
+
+      {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
+    </section>
   );
 }
 

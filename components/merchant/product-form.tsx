@@ -13,7 +13,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { humanize } from "@/lib/admin/format";
 import { useCreateProduct, useProductCategories, useUpdateProduct } from "@/lib/hooks/products";
 import {
   emptyProductFormValues,
@@ -24,9 +23,10 @@ import {
   productToFormValues,
   type ProductFormErrorPath,
 } from "@/lib/merchant-products";
+import { humanize } from "@/lib/admin/format";
+import { isApproved, merchantStatusOptions, statusOptionLabel } from "@/lib/product-approval";
 import { cn, slugify } from "@/lib/utils";
 import {
-  MERCHANT_SELECTABLE_PRODUCT_STATUSES,
   PRODUCT_CONDITIONS,
   PRODUCT_FULL_DESCRIPTION_MAX,
   PRODUCT_IMAGE_MAX_KB,
@@ -71,8 +71,11 @@ export function ProductForm({
   const previewName = useWatch({ control, name: "name" });
   const [tagText, setTagText] = useState(() => formatTags(product?.tags ?? []));
 
-  const statusOptions: string[] = [...MERCHANT_SELECTABLE_PRODUCT_STATUSES];
-  if (product && !statusOptions.includes(product.status)) statusOptions.push(product.status);
+  // The backend rejects any other status (ProductApprovalService::assertStatusChangeAllowed()).
+  const statusOptions = merchantStatusOptions(product);
+  const approved = isApproved(product);
+  // While a submission is under review the product is locked; only stock fields can still change.
+  const lockedForReview = product?.status === "pending_approval";
   const conditionOptions: string[] = [...PRODUCT_CONDITIONS];
   if (product?.condition && !conditionOptions.includes(product.condition)) conditionOptions.push(product.condition);
   const categoryOptions = categories.data?.data ?? [];
@@ -103,7 +106,7 @@ export function ProductForm({
       <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
         Cancel
       </Button>
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" disabled={isSubmitting} title={lockedForReview ? "Withdraw the product from review to edit it" : undefined}>
         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {isSubmitting ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save changes" : "Save product"}
       </Button>
@@ -129,6 +132,7 @@ export function ProductForm({
       </div>
 
       {formError ? <Notice tone="error">{formError}</Notice> : null}
+      <ApprovalNotice product={product} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -403,13 +407,15 @@ export function ProductForm({
               <SelectInput id="product-status" className="w-full" {...register("status")}>
                 {statusOptions.map((status) => (
                   <option key={status} value={status}>
-                    {humanize(status)}
+                    {statusOptionLabel(status, product)}
                   </option>
                 ))}
               </SelectInput>
             </Field>
             <p className="mt-2 text-xs text-muted-foreground">
-              Drafts stay hidden, active products are listed, and archived products are kept for your records.
+              {approved
+                ? "Active products are listed on the store; archived products are hidden. Changes to customer-facing details are reviewed before they go live."
+                : "A SofiaCart admin reviews every new product before customers can see it. Drafts are saved without being submitted."}
             </p>
           </FormSection>
         </div>
@@ -634,4 +640,44 @@ function FilePreview({ file, alt }: { file: File; alt: string }) {
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
   // eslint-disable-next-line @next/next/no-img-element -- object URLs cannot be optimised by next/image.
   return <img src={url} alt={alt} className="h-24 w-full rounded-xl object-cover" />;
+}
+
+/**
+ * Where the product stands in the approval workflow and what saving will do. The backend enforces
+ * these rules; this only explains them before the merchant saves.
+ */
+function ApprovalNotice({ product }: { product?: ProductResource }) {
+  if (!product) {
+    return <Notice tone="info">New products are reviewed by a SofiaCart admin before they appear on the store. Choose “Draft” to save without submitting.</Notice>;
+  }
+  if (product.status === "pending_approval") {
+    return (
+      <Notice tone="info">
+        This product is awaiting approval and cannot be edited. Withdraw it from review on the products page to make changes; stock levels can still be updated.
+      </Notice>
+    );
+  }
+  if (product.status === "rejected") {
+    return (
+      <Notice tone="error">
+        Not approved{product.approval?.rejection_reason ? `: ${product.approval.rejection_reason}` : "."} Fix the issues, then choose “Submit for approval”.
+      </Notice>
+    );
+  }
+  if (product.pending_change_request) {
+    return (
+      <Notice tone="info">
+        Earlier edits to this product are still awaiting approval. Withdraw them from the product preview before submitting new changes; stock and visibility can still be updated.
+      </Notice>
+    );
+  }
+  if (isApproved(product)) {
+    return (
+      <Notice tone="info">
+        This product is approved. Stock, cost price and Active/Archived apply immediately; changes to customer-facing details (name, description, prices, category, images, variants)
+        are sent for review and the current version stays live until they are approved.
+      </Notice>
+    );
+  }
+  return null;
 }

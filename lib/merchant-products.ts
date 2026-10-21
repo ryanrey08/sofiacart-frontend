@@ -59,7 +59,8 @@ export const emptyProductFormValues: ProductFormValues = {
   shortDescription: "",
   fullDescription: "",
   categoryId: "",
-  status: "draft",
+  // New products are sent for review by default (sofiacart-backend StoreProductRequest).
+  status: "pending_approval",
   regularPrice: "",
   salePrice: "",
   costPrice: "",

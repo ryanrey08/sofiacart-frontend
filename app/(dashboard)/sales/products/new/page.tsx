@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AccessDenied } from "@/components/admin/ui";
 import { ProductForm } from "@/components/merchant/product-form";
 import { getStoredAuth } from "@/lib/auth";
+import { productSaveOutcome } from "@/lib/product-approval";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function NewProductPage() {
   return (
     <ProductForm
       onCancel={() => router.push("/sales/products")}
-      onSaved={(product) => router.push(`/sales/products?saved=${product.id}&action=created`)}
+      onSaved={(product) => router.push(`/sales/products?saved=${product.id}&action=${productSaveOutcome(product)}`)}
     />
   );
 }
