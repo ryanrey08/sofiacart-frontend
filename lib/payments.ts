@@ -3,6 +3,7 @@ import type { MerchantPaymentStatus, PaymentMethod } from "@/types/payments";
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   card: "Credit / Debit Card",
   gcash: "GCash",
+  qrph: "QR Ph",
   maya: "Maya",
   bank_transfer: "Bank Transfer",
   cod: "Cash on Delivery",

@@ -11,7 +11,7 @@ export type MerchantPaymentStatus =
   | "partially_refunded"
   | "refunded";
 
-export type PaymentMethod = "card" | "gcash" | "maya" | "bank_transfer" | "cod" | "cash" | "paypal" | "other";
+export type PaymentMethod = "card" | "gcash" | "qrph" | "maya" | "bank_transfer" | "cod" | "cash" | "paypal" | "other";
 
 export type PaymentTransactionStatus = "pending" | "completed" | "failed";
 export type PaymentRefundStatus = "pending" | "approved" | "rejected" | "processing" | "processed" | "failed" | "cancelled";
