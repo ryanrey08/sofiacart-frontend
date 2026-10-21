@@ -13,6 +13,55 @@ export interface OrderItemResource {
   total_price: string | number;
 }
 
+// Mirrors App\Http\Controllers\Api\MerchantDashboardController. Money fields are decimal strings;
+// range metrics/series use the selected window, totals and inventory are all-time.
+export interface MerchantDashboard {
+  date_range: { from: string; to: string; semantics: string };
+  currency: string;
+  metrics: {
+    orders_count: number;
+    paid_orders_count: number;
+    gross_sales: string;
+    average_order_value: string;
+    payments_collected: string;
+    payments_count: number;
+    refunds_processed: string;
+    refunds_count: number;
+    net_revenue: string;
+    new_customers: number;
+    new_products: number;
+  };
+  totals: {
+    orders: number;
+    pending_orders: number;
+    customers: number;
+    products: number;
+    products_by_status: Record<string, number>;
+    pending_payments: number;
+    inventory: { total_items: number; low_stock: number; out_of_stock: number; total_available: number };
+  };
+  breakdowns: {
+    orders_by_status: Array<{ status: MerchantOrderStatus; total: number }>;
+    payments_by_status: Array<{ status: string; total: number }>;
+    top_products: Array<{ id: number; name: string; sku: string | null; quantity_sold: number; revenue: string }>;
+    low_stock: Array<{ product_id: number; name: string; sku: string | null; available: number; low_stock_threshold: number; stock_status: string }>;
+  };
+  series: Array<{ date: string; orders_count: number; gross_sales: string; payments_collected: string }>;
+  recent: {
+    orders: Array<{
+      id: number;
+      order_number: string;
+      customer_name: string | null;
+      items_count: number;
+      total_amount: string;
+      status: MerchantOrderStatus;
+      payment_status: MerchantPaymentStatus;
+      ordered_at: string | null;
+    }>;
+    transactions: Array<{ id: number; reference: string; type: string; method: string | null; amount: string; status: string; transacted_at: string | null }>;
+  };
+}
+
 export interface MerchantOrder {
   id: number;
   merchant_id: number;
