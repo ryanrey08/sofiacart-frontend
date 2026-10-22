@@ -14,9 +14,12 @@ SofiaCart is a multi-merchant e-commerce frontend built with Next.js App Router,
 
    ```bash
    NEXT_PUBLIC_API_URL=http://localhost:8000
+   NEXT_PUBLIC_STORE_URL_TEMPLATE=http://{store}.localhost:3001
    ```
 
    `NEXT_PUBLIC_API_URL` should point to the Laravel application root URL, not to an `/api`-prefixed path. The frontend appends paths such as `/api/auth/login`, `/api/merchant/register`, and `/api/v1/orders`.
+
+   `NEXT_PUBLIC_STORE_URL_TEMPLATE` is each store's public storefront address (`{store}` is replaced by the store slug), shown to merchants on Store Profile. It defaults to `https://{store}.sofiacart.ph`; locally the customer site (`sofiacart-website`) serves stores at `http://<slug>.localhost:3001`.
 
 3. Start the development server:
 

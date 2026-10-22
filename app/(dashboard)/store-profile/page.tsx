@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { CheckCircle2, Clock, FileUp, Loader2, Lock, Send, Store, Undo2, X, XCircle } from "lucide-react";
+import { Check, CheckCircle2, Clock, Copy, ExternalLink, FileUp, Globe, Loader2, Lock, Send, Store, Undo2, X, XCircle } from "lucide-react";
 import { PrivateFile } from "@/components/admin/private-file";
 import { AccessDenied, EmptyState, ErrorState, Field, LoadingState, Notice, Pagination } from "@/components/admin/ui";
 import { PageIntro } from "@/components/merchant/page-intro";
@@ -38,6 +38,7 @@ import {
   validateDocument,
 } from "@/lib/merchant-profile";
 import { mapProfileErrorField, merchantProfileSchema, type MerchantProfileSchema } from "@/lib/validation/merchant-profile";
+import { storefrontUrl } from "@/lib/store-url";
 import { cn } from "@/lib/utils";
 import type { MerchantChangeRequest, MerchantChangeRequestStatus, MerchantDocumentKey, MerchantProfile } from "@/types/merchant-profile";
 
@@ -60,6 +61,7 @@ function StoreProfileContent() {
 
   const { data, meta } = profile.data;
   const pending = meta.pending_change_request;
+  const storeUrl = storefrontUrl(data.store_slug);
 
   return (
     <div className="space-y-6">
@@ -67,6 +69,17 @@ function StoreProfileContent() {
         eyebrow="Account"
         title="Store Profile"
         description="Your approved store details. Changes you submit are reviewed by SofiaCart before they go live."
+        actions={
+          storeUrl && data.status === "verified" ? (
+            <Button asChild variant="outline">
+              <a href={storeUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                Visit your store
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </Button>
+          ) : null
+        }
       />
 
       {notice ? <Notice tone="success">{notice}</Notice> : null}
@@ -89,6 +102,7 @@ function StoreProfileContent() {
           }}
         />
         <aside className="space-y-6">
+          <StoreLinkCard storeUrl={storeUrl} status={data.status} />
           <AdminControlledDetails profile={data} />
           <ChangeHistory />
         </aside>
@@ -451,10 +465,78 @@ function WithdrawControl({ request, onWithdrawn }: { request: MerchantChangeRequ
   );
 }
 
+// What a merchant sees about their public storefront, by onboarding status: only approved
+// (verified) stores are reachable by customers; other addresses show "Store not found".
+const STORE_LINK_NOTES: Record<string, string> = {
+  verified: "Your store is live. Share this link with your customers.",
+  pending: "Your store opens at this address once SofiaCart approves your application.",
+  information_requested: "Your store opens at this address once SofiaCart approves your application.",
+  suspended: "Your store is suspended, so customers can't open it right now.",
+  rejected: "Your store application was not approved, so this address isn't live.",
+};
+
+function StoreLinkCard({ storeUrl, status }: { storeUrl: string | null; status: string | null }) {
+  const [copied, setCopied] = useState(false);
+  const live = status === "verified";
+
+  if (!storeUrl) return null;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(storeUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <Card className="border-none bg-white/95">
+      <CardContent className="space-y-3 p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-navy-900">
+            <Globe aria-hidden="true" className="h-4 w-4 text-brand-600" />
+            Your store
+          </h2>
+          <span
+            className={cn(
+              "inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+              live ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600",
+            )}
+          >
+            {live ? "Live" : "Not live"}
+          </span>
+        </div>
+        <p className="break-all rounded-2xl bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900">{storeUrl}</p>
+        <p className="text-sm text-muted-foreground">{STORE_LINK_NOTES[status ?? ""] ?? STORE_LINK_NOTES.pending}</p>
+        <div className="flex flex-wrap gap-2">
+          {live ? (
+            <Button asChild size="sm">
+              <a href={storeUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                Visit store
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </Button>
+          ) : null}
+          <Button type="button" size="sm" variant="outline" onClick={() => void copy()}>
+            {copied ? <Check aria-hidden="true" className="h-4 w-4" /> : <Copy aria-hidden="true" className="h-4 w-4" />}
+            {copied ? "Copied" : "Copy link"}
+          </Button>
+          <span role="status" className="sr-only">
+            {copied ? "Store link copied to clipboard" : ""}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AdminControlledDetails({ profile }: { profile: MerchantProfile }) {
   const rows: Array<[string, string | null]> = [
     ["Account status", humanize(profile.status)],
-    ["Store URL", profile.store_slug],
+    ["Store URL", storefrontUrl(profile.store_slug) ?? profile.store_slug],
     ["TIN", profile.tin],
     ["Business permit no.", profile.business_permit_number],
     ["Government ID", profile.government_id_type],
