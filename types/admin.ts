@@ -276,6 +276,48 @@ export interface AdminSetting {
   updated_at: string | null;
 }
 
+// Legal documents (AdminLegalDocumentResource). The storage path is never returned.
+export type LegalDocumentAudience = "buyer" | "merchant";
+export type LegalDocumentType = "terms" | "privacy";
+export type LegalDocumentStatus = "draft" | "published" | "unpublished" | "superseded";
+
+export interface AdminLegalDocument {
+  id: number;
+  audience: LegalDocumentAudience;
+  type: LegalDocumentType;
+  title: string;
+  version: number;
+  version_label: string | null;
+  effective_date: string | null;
+  status: LegalDocumentStatus;
+  is_published: boolean;
+  format: "pdf" | "docx";
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  checksum: string;
+  notes: string | null;
+  uploaded_by?: { id: number; name: string } | null;
+  published_by?: { id: number; name: string } | null;
+  unpublished_by?: { id: number; name: string } | null;
+  uploaded_at: string | null;
+  published_at: string | null;
+  unpublished_at: string | null;
+  updated_at: string | null;
+}
+
+// GET /api/admin/legal-documents: one entry per audience and type.
+export interface AdminLegalDocumentSlot {
+  audience: LegalDocumentAudience;
+  audience_label: string;
+  type: LegalDocumentType;
+  title: string;
+  published: AdminLegalDocument | null;
+  latest: AdminLegalDocument | null;
+  versions_count: number;
+  last_updated_at: string | null;
+}
+
 // GET /api/admin/reports/{sales,customers,products,inventory} (ReportsController, unscoped for admins).
 export interface SalesReportPoint {
   report_date: string;

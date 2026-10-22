@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Menu,
   Package,
+  ScrollText,
   Settings,
   ShoppingCart,
   Store,
@@ -40,6 +41,7 @@ const NAV_ICONS: Record<AdminNavIcon, LucideIcon> = {
   settings: Settings,
   users: UserCog,
   logs: FileText,
+  legal: ScrollText,
 };
 
 function initials(name: string) {

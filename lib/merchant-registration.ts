@@ -1,6 +1,12 @@
 import type { ValidatedMerchantRegistration } from "./validation/merchant";
 
-export function buildMerchantRegistrationFormData(values: ValidatedMerchantRegistration) {
+// The exact published Terms / Privacy Policy versions the applicant accepted on the form.
+export interface MerchantLegalAcceptance {
+  termsDocumentId: number;
+  privacyDocumentId: number;
+}
+
+export function buildMerchantRegistrationFormData(values: ValidatedMerchantRegistration, legal?: MerchantLegalAcceptance) {
   const formData = new FormData();
   const scalarFields: Array<[string, string]> = [
     ["name", values.name],
@@ -45,6 +51,13 @@ export function buildMerchantRegistrationFormData(values: ValidatedMerchantRegis
   formData.append("store_logo", values.storeLogo);
   if (values.storeBanner) formData.append("store_banner", values.storeBanner);
   formData.append("government_id", values.governmentIdFile);
+
+  if (legal) {
+    formData.append("accept_terms", "1");
+    formData.append("terms_document_id", String(legal.termsDocumentId));
+    formData.append("acknowledge_privacy", "1");
+    formData.append("privacy_document_id", String(legal.privacyDocumentId));
+  }
 
   return formData;
 }

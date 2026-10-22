@@ -32,6 +32,8 @@ export const ADMIN_PERMISSIONS = {
   PERMISSIONS_VIEW: "permissions.view",
   PERMISSIONS_MANAGE: "permissions.manage",
   LOGS_VIEW: "logs.view",
+  LEGAL_VIEW: "legal.view",
+  LEGAL_MANAGE: "legal.manage",
 } as const;
 
 export type AdminPermissionName = (typeof ADMIN_PERMISSIONS)[keyof typeof ADMIN_PERMISSIONS];
@@ -58,7 +60,8 @@ export type AdminNavIcon =
   | "reports"
   | "settings"
   | "users"
-  | "logs";
+  | "logs"
+  | "legal";
 
 export interface AdminNavItem {
   href: string;
@@ -111,6 +114,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     items: [
       { href: "/admin/reports", label: "Reports", icon: "reports", permission: ADMIN_PERMISSIONS.REPORTS_VIEW },
       { href: "/admin/settings", label: "Platform Settings", icon: "settings", permission: ADMIN_PERMISSIONS.SETTINGS_VIEW },
+      { href: "/admin/legal-documents", label: "Legal Documents", icon: "legal", permission: ADMIN_PERMISSIONS.LEGAL_VIEW },
     ],
   },
   {

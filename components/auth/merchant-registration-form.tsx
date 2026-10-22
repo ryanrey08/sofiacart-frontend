@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Building2, CheckCircle2, ClipboardCheck, FileCheck2, FileText, ImageIcon, Loader2, Store, UploadCloud, UserCircle2 } from "lucide-react";
 import { isAxiosError } from "axios";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StepperNav, type StepItem } from "@/components/stepper-nav";
 import { VerificationEmailSentCard } from "@/components/auth/email-verification";
+import { MERCHANT_LEGAL_QUERY_KEY, MerchantLegalConsent, useMerchantLegalDocuments, type MerchantLegalConsentValue } from "@/components/auth/merchant-legal-consent";
 import api from "@/lib/api/axios";
 import { getStoredAuth } from "@/lib/auth";
 import { rememberPendingVerificationEmail } from "@/lib/email-verification";
@@ -249,6 +251,10 @@ export function MerchantRegistrationForm() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const legalDocuments = useMerchantLegalDocuments();
+  const [legalConsent, setLegalConsent] = useState<MerchantLegalConsentValue>({ acceptTerms: false, acknowledgePrivacy: false });
+  const [legalErrors, setLegalErrors] = useState<Partial<Record<"terms" | "privacy", string>>>({});
 
   const {
     register,
@@ -335,10 +341,23 @@ export function MerchantRegistrationForm() {
       return;
     }
 
+    const terms = legalDocuments.data?.terms;
+    const privacy = legalDocuments.data?.privacy;
+    if (!terms || !privacy) {
+      setSubmitError("Registration is temporarily unavailable because the Terms and Privacy Policy could not be loaded. Please try again later.");
+      return;
+    }
+    const missingConsent = {
+      ...(legalConsent.acceptTerms ? {} : { terms: "You must accept the Merchant Terms and Conditions to register." }),
+      ...(legalConsent.acknowledgePrivacy ? {} : { privacy: "You must acknowledge that you have read the Merchant Data Privacy Policy." }),
+    };
+    setLegalErrors(missingConsent);
+    if (Object.keys(missingConsent).length > 0) return;
+
     try {
       const response = await api.post<MerchantRegistrationResponse>(
         "/api/merchant/register",
-        buildMerchantRegistrationFormData(values),
+        buildMerchantRegistrationFormData(values, { termsDocumentId: terms.id, privacyDocumentId: privacy.id }),
       );
       rememberPendingVerificationEmail(response.data.user.email);
       setRegistrationResponse(response.data);
@@ -353,9 +372,18 @@ export function MerchantRegistrationForm() {
         if (status === 422 && validationErrors) {
           let earliestStep = 4;
           let mappedErrors = 0;
+          const serverLegalErrors: Partial<Record<"terms" | "privacy", string>> = {};
           for (const [backendField, messages] of Object.entries(validationErrors)) {
             const message = Array.isArray(messages) ? messages[0] : messages;
             if (!message) continue;
+            const legalField = backendField === "accept_terms" || backendField === "terms_document_id"
+              ? "terms"
+              : backendField === "acknowledge_privacy" || backendField === "privacy_document_id" ? "privacy" : null;
+            if (legalField) {
+              serverLegalErrors[legalField] = message;
+              mappedErrors += 1;
+              continue;
+            }
             const fields: (keyof MerchantRegistrationSchema)[] = backendField === "social_links"
               ? ["facebook", "instagram", "tiktok", "website"]
               : registrationErrorFields[backendField] ? [registrationErrorFields[backendField]] : [];
@@ -365,6 +393,12 @@ export function MerchantRegistrationForm() {
               const step = Object.entries(fieldGroups).find(([, groupFields]) => groupFields.includes(field))?.[0];
               if (step) earliestStep = Math.min(earliestStep, Number(step));
             });
+          }
+          if (Object.keys(serverLegalErrors).length > 0) {
+            // A newer version may have been published: show it and ask again.
+            setLegalErrors(serverLegalErrors);
+            setLegalConsent({ acceptTerms: false, acknowledgePrivacy: false });
+            void queryClient.invalidateQueries({ queryKey: MERCHANT_LEGAL_QUERY_KEY });
           }
           if (mappedErrors > 0) setCurrentStep(earliestStep);
           setSubmitError(mappedErrors > 0
@@ -730,6 +764,19 @@ export function MerchantRegistrationForm() {
                       );
                     })}
                   </div>
+                ) : null}
+                {currentStep === 4 ? (
+                  <MerchantLegalConsent
+                    value={legalConsent}
+                    errors={legalErrors}
+                    onChange={(value) => {
+                      setLegalConsent(value);
+                      setLegalErrors((current) => ({
+                        ...(value.acceptTerms ? {} : current.terms ? { terms: current.terms } : {}),
+                        ...(value.acknowledgePrivacy ? {} : current.privacy ? { privacy: current.privacy } : {}),
+                      }));
+                    }}
+                  />
                 ) : null}
 
                 {submitError ? <div role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{submitError}</div> : null}

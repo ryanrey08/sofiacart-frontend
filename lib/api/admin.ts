@@ -6,6 +6,8 @@ import type {
   AdminDashboard,
   AdminInventoryItem,
   AdminInventoryLog,
+  AdminLegalDocument,
+  AdminLegalDocumentSlot,
   AdminLoginResponse,
   AdminMerchant,
   AdminOrder,
@@ -21,6 +23,8 @@ import type {
   AdminUser,
   CustomerReport,
   InventoryReport,
+  LegalDocumentAudience,
+  LegalDocumentType,
   MerchantBilling,
   MerchantDocument,
   MerchantStatus,
@@ -305,3 +309,39 @@ export const deletePermission = (id: number) => adminApi.delete(`/api/admin/perm
 // System logs
 export const fetchSystemLogs = (params: QueryParams) => getPage<AdminAuditLog>("/api/admin/logs", params);
 export const fetchSystemLog = (id: number) => getData<AdminAuditLog>(`/api/admin/logs/${id}`);
+
+// Legal documents (Terms and Conditions, Data Privacy Policy) — LegalDocumentController.
+export const fetchLegalDocuments = () => getData<AdminLegalDocumentSlot[]>("/api/admin/legal-documents");
+
+export const fetchLegalDocumentVersions = (audience: LegalDocumentAudience, type: LegalDocumentType) =>
+  getData<AdminLegalDocument[]>(`/api/admin/legal-documents/${audience}/${type}/versions`);
+
+export async function uploadLegalDocument(
+  audience: LegalDocumentAudience,
+  type: LegalDocumentType,
+  payload: { file: File; version_label?: string; effective_date?: string; notes?: string },
+) {
+  const form = new FormData();
+  form.append("file", payload.file);
+  if (payload.version_label) form.append("version_label", payload.version_label);
+  if (payload.effective_date) form.append("effective_date", payload.effective_date);
+  if (payload.notes) form.append("notes", payload.notes);
+  const response = await adminApi.post<{ data: AdminLegalDocument; message: string }>(`/api/admin/legal-documents/${audience}/${type}/versions`, form);
+  return response.data;
+}
+
+// Any version, including drafts, streamed through the authenticated admin client for preview.
+export async function fetchLegalDocumentFile(id: number) {
+  const response = await adminApi.get<Blob>(`/api/admin/legal-documents/versions/${id}/file`, { responseType: "blob" });
+  return response.data;
+}
+
+export async function publishLegalDocument(id: number) {
+  const response = await adminApi.post<{ data: AdminLegalDocument; message: string }>(`/api/admin/legal-documents/versions/${id}/publish`);
+  return response.data;
+}
+
+export async function unpublishLegalDocument(id: number) {
+  const response = await adminApi.post<{ data: AdminLegalDocument; message: string }>(`/api/admin/legal-documents/versions/${id}/unpublish`);
+  return response.data;
+}
