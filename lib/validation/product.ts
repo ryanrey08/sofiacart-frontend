@@ -6,9 +6,9 @@ export const PRODUCT_STATUSES = ["pending_approval", "active", "draft", "archive
 // which statuses a merchant may pick for a given product comes from lib/product-approval.ts.
 export const MERCHANT_SELECTABLE_PRODUCT_STATUSES = ["pending_approval", "draft", "archived"] as const;
 export const PRODUCT_STOCK_STATUSES = ["active", "low_stock", "out_of_stock"] as const;
-// images.* => ['image','mimes:jpg,jpeg,png,webp','max:5120']
+// images.* => ['image','mimes:jpg,jpeg,png,webp','max:10240'] (config/uploads.php)
 export const PRODUCT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-export const PRODUCT_IMAGE_MAX_KB = 5120;
+export const PRODUCT_IMAGE_MAX_KB = 10240;
 // products.price/regular_price/sale_price/cost_price are decimal(12,2); stock columns are unsigned integers.
 export const PRODUCT_PRICE_MAX = 9999999999.99;
 export const PRODUCT_STOCK_MAX = 4294967295;
@@ -94,7 +94,7 @@ export const productFormSchema = z
       .refine((files) => files.every((file) => PRODUCT_IMAGE_TYPES.includes(file.type)), "Images must be JPG, PNG or WebP files")
       .refine(
         (files) => files.every((file) => file.size <= PRODUCT_IMAGE_MAX_KB * 1024),
-        `Each image must be no larger than ${PRODUCT_IMAGE_MAX_KB} KB (5 MB)`,
+        `Each image must be no larger than ${PRODUCT_IMAGE_MAX_KB / 1024} MB`,
       ),
     // "new:<index>" for an uploaded file, "existing:<id>" for a kept product_images row, "" for the first image.
     primaryImage: z.string(),

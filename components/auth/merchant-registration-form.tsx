@@ -581,7 +581,7 @@ export function MerchantRegistrationForm() {
                       id="businessPermit"
                       label="Business Permit"
                       accept=".png,.jpg,.jpeg,.pdf"
-                      hint="JPG, PNG or PDF"
+                      hint="JPG, PNG or PDF, up to 10 MB"
                       file={businessPermit}
                       error={errors.businessPermit?.message as string | undefined}
                       onFileChange={(file) => setValue("businessPermit", file, { shouldValidate: true })}
@@ -635,7 +635,7 @@ export function MerchantRegistrationForm() {
                       id="storeLogo"
                       label="Store Logo"
                       accept=".jpg,.jpeg,.png"
-                      hint="Square JPG or PNG"
+                      hint="Square JPG or PNG, up to 10 MB"
                       file={logoFile}
                       error={errors.storeLogo?.message as string | undefined}
                       onFileChange={(file) => {
@@ -647,7 +647,7 @@ export function MerchantRegistrationForm() {
                       id="storeBanner"
                       label="Store Banner (Optional)"
                       accept=".jpg,.jpeg,.png"
-                      hint="Wide JPG or PNG"
+                      hint="Wide JPG or PNG, up to 10 MB"
                       file={bannerFile}
                       error={errors.storeBanner?.message as string | undefined}
                       onFileChange={(file) => {
@@ -682,7 +682,7 @@ export function MerchantRegistrationForm() {
                       id="governmentIdFile"
                       label="Upload Government ID"
                       accept=".jpg,.jpeg,.png,.pdf"
-                      hint="Clear JPG, PNG or PDF of your valid ID"
+                      hint="Clear JPG, PNG or PDF of your valid ID, up to 10 MB"
                       file={governmentIdFile}
                       error={errors.governmentIdFile?.message as string | undefined}
                       onFileChange={(file) => {

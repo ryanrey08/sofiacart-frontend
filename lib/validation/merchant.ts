@@ -4,18 +4,20 @@ const philippinePhone = /^(?:\+639\d{9}|09\d{9})$/;
 const permitTypes = ["application/pdf", "image/jpeg", "image/png"];
 const imageTypes = ["image/jpeg", "image/png"];
 const isFile = (value: unknown): value is File => typeof File !== "undefined" && value instanceof File;
+// Every image/document upload may be up to 10 MB (sofiacart-backend config/uploads.php).
+const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 
 const requiredFile = (label: string, types: string[], maxSize: number) =>
   z.custom<File | null>((value) => value === null || isFile(value), `${label} is required`)
     .refine(isFile, `${label} is required`)
     .refine((file) => isFile(file) && types.includes(file.type), `${label} must be a PDF, JPG, or PNG file`)
-    .refine((file) => isFile(file) && file.size <= maxSize, `${label} must be no larger than ${Math.floor(maxSize / 1024)} KB`);
+    .refine((file) => isFile(file) && file.size <= maxSize, `${label} must be no larger than ${Math.floor(maxSize / (1024 * 1024))} MB`);
 
 const optionalImage = z.custom<File | null>(
   (value) => value === null || isFile(value),
   "Store banner must be an image file",
 ).refine((file) => file === null || imageTypes.includes(file.type), "Store banner must be a JPG or PNG image")
-  .refine((file) => file === null || file.size <= 5120 * 1024, "Store banner must be no larger than 5120 KB");
+  .refine((file) => file === null || file.size <= IMAGE_MAX_BYTES, "Store banner must be no larger than 10 MB");
 
 export const merchantRegistrationSchema = z.object({
   name: z.string().min(2, "Full name is required"),
@@ -28,7 +30,7 @@ export const merchantRegistrationSchema = z.object({
   permitNumber: z.string().min(3, "Permit number is required"),
   tin: z.string().min(9, "TIN is required"),
   businessCategory: z.string().min(1, "Business category is required"),
-  businessPermit: requiredFile("Business permit", permitTypes, 5120 * 1024),
+  businessPermit: requiredFile("Business permit", permitTypes, IMAGE_MAX_BYTES),
   businessAddress: z.string().min(5, "Business address is required"),
   city: z.string().min(2, "City/Municipality is required"),
   province: z.string().min(1, "Province is required"),
@@ -40,7 +42,7 @@ export const merchantRegistrationSchema = z.object({
   storeContactNumber: z.string().regex(philippinePhone, "Use a Philippine number in +639XXXXXXXXX or 09XXXXXXXXX format"),
   storeEmail: z.email("Enter a valid store email"),
   storeAddress: z.string().min(5, "Store address is required"),
-  storeLogo: requiredFile("Store logo", imageTypes, 2048 * 1024),
+  storeLogo: requiredFile("Store logo", imageTypes, IMAGE_MAX_BYTES),
   storeBanner: optionalImage,
   facebook: z.string(),
   instagram: z.string(),
@@ -54,7 +56,7 @@ export const merchantRegistrationSchema = z.object({
   governmentIdType: z.string().min(1, "Government ID type is required"),
   governmentIdNumber: z.string().min(3, "Government ID number is required"),
   governmentIdExpiry: z.string().min(1, "Expiry date is required"),
-  governmentIdFile: requiredFile("Government ID file", permitTypes, 5120 * 1024),
+  governmentIdFile: requiredFile("Government ID file", permitTypes, IMAGE_MAX_BYTES),
 }).superRefine((values, context) => {
   if (values.password !== values.passwordConfirmation) {
     context.addIssue({

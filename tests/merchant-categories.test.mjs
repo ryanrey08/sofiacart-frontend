@@ -50,16 +50,16 @@ test("schema validates slug format, numbers, description text length and the ima
   assert.deepEqual(issues({ ...validValues(), sortOrder: "-1" }), ["sortOrder"]);
   assert.deepEqual(issues({ ...validValues(), description: `<p><b>${"a".repeat(500)}</b></p>` }), []);
   assert.deepEqual(issues({ ...validValues(), description: `<p>${"a".repeat(501)}</p>` }), ["description"]);
-  const big = new File([new Uint8Array(2048 * 1024 + 1)], "big.png", { type: "image/png" });
+  const big = new File([new Uint8Array(10240 * 1024 + 1)], "big.png", { type: "image/png" });
   assert.deepEqual(issues({ ...validValues(), image: big }), ["image"]);
   const ok = new File([new Uint8Array(10)], "ok.webp", { type: "image/webp" });
   assert.deepEqual(issues({ ...validValues(), image: ok }), []);
 });
 
-test("image checks allow PNG/JPG/WEBP up to 2MB", () => {
-  assert.equal(categoryImageError({ type: "image/jpeg", size: 2048 * 1024 }), null);
+test("image checks allow PNG/JPG/WEBP up to 10 MB", () => {
+  assert.equal(categoryImageError({ type: "image/jpeg", size: 10240 * 1024 }), null);
   assert.match(categoryImageError({ type: "image/gif", size: 10 }), /PNG, JPG or WEBP/);
-  assert.match(categoryImageError({ type: "image/png", size: 2048 * 1024 + 1 }), /2MB/);
+  assert.match(categoryImageError({ type: "image/png", size: 10240 * 1024 + 1 }), /10 MB/);
 });
 
 test("rich text helpers count visible text only", () => {

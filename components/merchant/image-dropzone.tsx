@@ -5,7 +5,7 @@ import { ImagePlus, Loader2 } from "lucide-react";
 import { CATEGORY_IMAGE_TYPES, categoryImageError } from "@/lib/validation/category";
 import { cn } from "@/lib/utils";
 
-// Drag-and-drop / click-to-browse picker for a single category image (PNG/JPG/WEBP, max 2MB).
+// Drag-and-drop / click-to-browse picker for a single category image (PNG/JPG/WEBP, max 10 MB).
 export function ImageDropzone({
   id,
   onSelect,
@@ -70,7 +70,7 @@ export function ImageDropzone({
         or drag and drop
       </p>
       <p id={describedBy} className="text-xs text-muted-foreground">
-        PNG, JPG or WEBP (max. 2MB)
+        PNG, JPG or WEBP (max. 10 MB)
         {compact ? null : <span className="block">Recommended size: 600 × 400px</span>}
       </p>
       <input

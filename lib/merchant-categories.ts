@@ -218,7 +218,7 @@ export function mapCategoryApiError(error: unknown, fallback = "Something went w
   }
 
   if (status === 413) {
-    return { status, fieldErrors: { image: "The image is too large for the server. Use an image under 2MB." }, formError: "The upload was rejected because it is too large." };
+    return { status, fieldErrors: { image: "The image is too large for the server. Use an image under 10 MB." }, formError: "The upload was rejected because it is too large." };
   }
 
   const formError =

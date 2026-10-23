@@ -125,11 +125,11 @@ test("product schema mirrors sale_price lte:regular_price and distinct variant S
   assert.equal(missingVariantPrice.success, false);
 });
 
-test("product schema rejects unsupported image types and images over 5120 KB", () => {
+test("product schema rejects unsupported image types and images over 10 MB", () => {
   const gif = new File(["gif"], "a.gif", { type: "image/gif" });
   const webp = new File(["webp"], "a.webp", { type: "image/webp" });
-  const big = new File([new Uint8Array(5120 * 1024 + 1)], "big.png", { type: "image/png" });
-  const edge = new File([new Uint8Array(5120 * 1024)], "edge.png", { type: "image/png" });
+  const big = new File([new Uint8Array(10240 * 1024 + 1)], "big.png", { type: "image/png" });
+  const edge = new File([new Uint8Array(10240 * 1024)], "edge.png", { type: "image/png" });
   assert.equal(productFormSchema.safeParse({ ...validValues(), images: [gif] }).success, false);
   assert.equal(productFormSchema.safeParse({ ...validValues(), images: [webp] }).success, true);
   assert.equal(productFormSchema.safeParse({ ...validValues(), images: [big] }).success, false);

@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 // Mirrors sofiacart-backend StoreCategoryRequest / UpdateCategoryRequest and the category image upload rule
-// (`image|mimes:png,jpg,jpeg,webp|max:2048`).
+// (`image|mimes:png,jpg,jpeg,webp|max:10240`, config/uploads.php).
 export const CATEGORY_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
-export const CATEGORY_IMAGE_MAX_KB = 2048;
+export const CATEGORY_IMAGE_MAX_KB = 10240;
 export const CATEGORY_DESCRIPTION_MAX = 500;
 export const CATEGORY_NAME_MAX = 255;
 export const CATEGORY_META_TITLE_MAX = 255;
@@ -34,7 +34,7 @@ export function richTextLength(html: string | null | undefined) {
 
 export function categoryImageError(file: { type: string; size: number }) {
   if (!CATEGORY_IMAGE_TYPES.includes(file.type)) return "Image must be a PNG, JPG or WEBP file";
-  if (file.size > CATEGORY_IMAGE_MAX_KB * 1024) return "Image must be no larger than 2MB";
+  if (file.size > CATEGORY_IMAGE_MAX_KB * 1024) return "Image must be no larger than 10 MB";
   return null;
 }
 

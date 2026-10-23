@@ -524,7 +524,7 @@ function ProductImagesEditor({
                         event.target.value = "";
                       }}
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">JPG, PNG or WebP, up to {PRODUCT_IMAGE_MAX_KB} KB each.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">JPG, PNG or WebP, up to {PRODUCT_IMAGE_MAX_KB / 1024} MB each.</p>
                     {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
 
                     {replacesGallery ? (

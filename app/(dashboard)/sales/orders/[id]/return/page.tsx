@@ -151,7 +151,7 @@ export default function RequestReturnPage() {
           <Upload aria-hidden="true" className="mx-auto h-6 w-6 text-slate-400" />
           <p className="mt-2 text-sm text-slate-600">Drag and drop images here, or</p>
           <Button type="button" variant="outline" className="mt-2" onClick={() => fileInput.current?.click()}>Choose files</Button>
-          <p className="mt-2 text-xs text-slate-500">Required · PNG, JPG, WebP (max 5 MB each, up to 5 photos)</p>
+          <p className="mt-2 text-xs text-slate-500">Required · PNG, JPG, WebP (max 10 MB each, up to 5 photos)</p>
           <input ref={fileInput} id="return-evidence" className="sr-only" aria-labelledby="return-evidence-label" aria-required="true" required type="file" multiple
             accept="image/jpeg,image/png,image/webp" onChange={(event) => { addFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
         </div>

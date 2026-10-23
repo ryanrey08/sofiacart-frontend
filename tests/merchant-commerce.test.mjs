@@ -63,7 +63,7 @@ test("return multipart matches Laravel's nested items and evidence arrays", () =
   assert.equal(validateEvidence([file]), null);
   assert.match(validateEvidence(Array(6).fill(file)), /five/);
   assert.match(validateEvidence([new File(["x"], "x.pdf", { type: "application/pdf" })]), /JPG/);
-  assert.match(validateEvidence([new File([new Uint8Array(5120 * 1024 + 1)], "huge.png", { type: "image/png" })]), /5 MB/);
+  assert.match(validateEvidence([new File([new Uint8Array(10 * 1024 * 1024 + 1)], "huge.png", { type: "image/png" })]), /10 MB/);
 });
 
 test("the return wizard clamps quantities and estimates line amounts from order totals", () => {
