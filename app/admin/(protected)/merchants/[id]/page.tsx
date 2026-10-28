@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Boxes, CircleDollarSign, ClipboardList, Clock, CreditCard, FilePen, Package, Receipt, RotateCcw, ShoppingCart, Store, Users } from "lucide-react";
+import { ArrowLeft, Boxes, CircleDollarSign, ClipboardList, Clock, CreditCard, FilePen, Package, Pencil, Receipt, RotateCcw, ShoppingCart, Store, Users } from "lucide-react";
 import { CustomersList } from "@/components/admin/lists/customers-list";
 import { FinanceOverview } from "@/components/admin/lists/finance-list";
 import { InventoryOverview } from "@/components/admin/lists/inventory-list";
@@ -13,11 +13,12 @@ import { ProductsList } from "@/components/admin/lists/products-list";
 import { ReturnsList } from "@/components/admin/lists/returns-list";
 import { MerchantApplicationDetails, MerchantDocuments, OnboardingHistory, OnboardingProgress } from "@/components/admin/merchant-application";
 import { MerchantBillingPanel } from "@/components/admin/merchant-billing-panel";
+import { MerchantEditModal } from "@/components/admin/merchant-edit-form";
 import { PendingProfileChangeReview, ProfileChangeHistory } from "@/components/admin/merchant-change-review";
 import { MerchantStatusForm } from "@/components/admin/merchant-status-form";
 import { useAdminSession } from "@/components/admin/admin-session";
 import { Can, RequirePermission } from "@/components/admin/require-permission";
-import { EmptyState, ErrorState, LoadingState, PageHeader, Panel, StatCard, StatGrid, StatusPill, Tabs, type TabItem } from "@/components/admin/ui";
+import { EmptyState, ErrorState, LoadingState, Notice, PageHeader, Panel, StatCard, StatGrid, StatusPill, Tabs, type TabItem } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { fetchMerchant } from "@/lib/api/admin";
 import { formatDateTime, formatMoney } from "@/lib/admin/format";
@@ -130,9 +131,13 @@ function MerchantDetail() {
 }
 
 function MerchantOverview({ merchant, onUpdated }: { merchant: AdminMerchant; onUpdated: (merchant: AdminMerchant) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,1fr)]">
       <div className="space-y-5">
+        {saved ? <Notice tone="success">{saved}</Notice> : null}
         {merchant.pending_change_request ? (
           <Panel
             icon={FilePen}
@@ -151,9 +156,29 @@ function MerchantOverview({ merchant, onUpdated }: { merchant: AdminMerchant; on
         <Panel icon={ClipboardList} title="Onboarding progress">
           <OnboardingProgress merchant={merchant} />
         </Panel>
-        <Panel title="Application details">
+        <Panel
+          title="Application details"
+          actions={
+            <Can permission={ADMIN_PERMISSIONS.MERCHANTS_MANAGE}>
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                <Pencil className="h-4 w-4" />
+                Edit details
+              </Button>
+            </Can>
+          }
+        >
           <MerchantApplicationDetails merchant={merchant} />
         </Panel>
+        <MerchantEditModal
+          merchant={merchant}
+          open={editing}
+          onClose={() => setEditing(false)}
+          onSaved={(updated, message) => {
+            setEditing(false);
+            setSaved(`${message} The changes are live and the merchant has been notified.`);
+            onUpdated(updated);
+          }}
+        />
         <Panel title="Uploaded documents">
           <MerchantDocuments merchant={merchant} />
         </Panel>

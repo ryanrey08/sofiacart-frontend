@@ -102,6 +102,11 @@ export async function updateMerchantStatus(id: number, payload: { status: Mercha
   const response = await adminApi.patch<{ data: AdminMerchant }>(`/api/admin/merchants/${id}/status`, payload);
   return response.data.data;
 }
+// Direct edit by an admin (multipart, for replacement files): applied immediately, no approval.
+export async function updateMerchantProfile(id: number, data: FormData) {
+  const response = await adminApi.post<{ data: AdminMerchant; fields: string[]; message: string }>(`/api/admin/merchants/${id}/profile`, data);
+  return response.data;
+}
 export const fetchMerchantOnboardingHistory = (id: number, params: QueryParams) =>
   getPage<AdminAuditLog>(`/api/admin/merchants/${id}/onboarding-history`, params);
 export const fetchMerchantBilling = (id: number) => getData<MerchantBilling>(`/api/admin/merchants/${id}/billing`);
