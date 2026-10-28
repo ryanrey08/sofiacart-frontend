@@ -61,7 +61,8 @@ export type AdminNavIcon =
   | "settings"
   | "users"
   | "logs"
-  | "legal";
+  | "legal"
+  | "lists";
 
 export interface AdminNavItem {
   href: string;
@@ -114,6 +115,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     items: [
       { href: "/admin/reports", label: "Reports", icon: "reports", permission: ADMIN_PERMISSIONS.REPORTS_VIEW },
       { href: "/admin/settings", label: "Platform Settings", icon: "settings", permission: ADMIN_PERMISSIONS.SETTINGS_VIEW },
+      {
+        href: "/admin/registration-options",
+        label: "Registration Options",
+        icon: "lists",
+        permission: ADMIN_PERMISSIONS.SETTINGS_VIEW,
+      },
       { href: "/admin/legal-documents", label: "Legal Documents", icon: "legal", permission: ADMIN_PERMISSIONS.LEGAL_VIEW },
     ],
   },

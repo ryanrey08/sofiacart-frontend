@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Check, CheckCircle2, Clock, Copy, ExternalLink, FileUp, Globe, Loader2, Lock, Send, Store, Undo2, X, XCircle } from "lucide-react";
 import { PrivateFile } from "@/components/admin/private-file";
-import { AccessDenied, EmptyState, ErrorState, Field, LoadingState, Notice, Pagination } from "@/components/admin/ui";
+import { AccessDenied, EmptyState, ErrorState, Field, LoadingState, Notice, Pagination, SelectInput } from "@/components/admin/ui";
 import { PageIntro } from "@/components/merchant/page-intro";
 import { ChangeRequestFilePreviews, ProfileChangeComparison } from "@/components/merchant/profile-change-comparison";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime, humanize } from "@/lib/admin/format";
 import { parseApiError } from "@/lib/admin/errors";
 import { getStoredAuth } from "@/lib/auth";
+import { useProvinceCities, useRegistrationOptions } from "@/lib/hooks/registration-options";
 import {
   fetchOwnChangeRequestFile,
   fetchOwnDocument,
@@ -37,10 +38,17 @@ import {
   profileToFormValues,
   validateDocument,
 } from "@/lib/merchant-profile";
+import { withCurrentValue } from "@/lib/registration-options";
 import { mapProfileErrorField, merchantProfileSchema, type MerchantProfileSchema } from "@/lib/validation/merchant-profile";
 import { storefrontUrl } from "@/lib/store-url";
 import { cn } from "@/lib/utils";
-import type { MerchantChangeRequest, MerchantChangeRequestStatus, MerchantDocumentKey, MerchantProfile } from "@/types/merchant-profile";
+import type {
+  MerchantChangeRequest,
+  MerchantChangeRequestStatus,
+  MerchantDocumentKey,
+  MerchantEditableField,
+  MerchantProfile,
+} from "@/types/merchant-profile";
 
 type Uploads = Partial<Record<MerchantDocumentKey, File>>;
 
@@ -214,11 +222,41 @@ function ProfileForm({
     handleSubmit,
     reset,
     setError,
+    setValue,
+    control,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<MerchantProfileSchema>({
     resolver: zodResolver(merchantProfileSchema),
     defaultValues: profileToFormValues(profile),
   });
+  // Dropdown choices are the same Super Admin managed lists as merchant registration.
+  const registrationOptions = useRegistrationOptions();
+  const catalog = registrationOptions.data;
+  const province = useWatch({ control, name: "province" }) ?? "";
+  const provinceCities = useProvinceCities(catalog, province);
+
+  // A list of choices renders a dropdown, `undefined` a loading dropdown, and `null` a text input
+  // (free-text fields, provinces without listed cities, or when the lists could not be loaded).
+  const choicesFor = (field: Exclude<MerchantEditableField, "social_links">): readonly string[] | undefined | null => {
+    if (registrationOptions.isError) return null;
+    const current = profile[field] as string | null;
+    switch (field) {
+      case "business_type":
+        return catalog && withCurrentValue(catalog.business_types, current);
+      case "business_category":
+      case "store_category":
+        return catalog && withCurrentValue(catalog.categories, current);
+      case "province":
+        return catalog && withCurrentValue(catalog.provinces.map((item) => item.name), current);
+      case "city":
+        if (!catalog) return undefined;
+        if (!provinceCities.cities || provinceCities.isError) return null;
+        if (provinceCities.isLoading) return undefined;
+        return province === profile.province ? withCurrentValue(provinceCities.cities, current) : provinceCities.cities;
+      default:
+        return null;
+    }
+  };
   const hasUploads = Object.values(uploads).some(Boolean);
   const canSubmit = (isDirty || hasUploads) && !Object.values(uploadErrors).some(Boolean);
 
@@ -277,6 +315,7 @@ function ProfileForm({
                   const id = `profile-${field}`;
                   const multiline = MERCHANT_MULTILINE_FIELDS.has(field);
                   const optional = field === "store_description";
+                  const choices = choicesFor(field);
                   return (
                     <Field
                       key={field}
@@ -287,6 +326,24 @@ function ProfileForm({
                     >
                       {multiline ? (
                         <Textarea id={id} className="min-h-20" hasError={!!errors[field]} {...register(field)} />
+                      ) : choices !== null ? (
+                        <SelectInput
+                          id={id}
+                          className={cn("w-full", errors[field] && "border-red-400")}
+                          aria-invalid={errors[field] ? true : undefined}
+                          disabled={!choices}
+                          {...register(
+                            field,
+                            field === "province" ? { onChange: () => setValue("city", "", { shouldDirty: true }) } : undefined,
+                          )}
+                        >
+                          <option value="">{choices ? `Select ${MERCHANT_FIELD_LABELS[field].toLowerCase()}` : "Loading choices…"}</option>
+                          {choices?.map((choice) => (
+                            <option key={choice} value={choice}>
+                              {choice}
+                            </option>
+                          ))}
+                        </SelectInput>
                       ) : (
                         <Input
                           id={id}

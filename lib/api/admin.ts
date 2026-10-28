@@ -1,6 +1,7 @@
 import adminApi from "@/lib/api/admin-client";
 import type {
   AdminAuditLog,
+  AdminCity,
   AdminCustomer,
   AdminCustomerDetail,
   AdminDashboard,
@@ -14,7 +15,10 @@ import type {
   AdminPayment,
   AdminPermission,
   AdminProduct,
+  AdminProvince,
   AdminRefund,
+  AdminRegistrationOption,
+  AdminRegistrationOptionGroup,
   AdminReturnRequest,
   AdminRole,
   AdminSession,
@@ -37,6 +41,7 @@ import type {
   ProductReport,
   ProductStatus,
   RefundStatus,
+  RegistrationOptionType,
   SalesReportPoint,
 } from "@/types/admin";
 import type { InventorySummary, ProductChangeRequestResource } from "@/types";
@@ -345,3 +350,53 @@ export async function unpublishLegalDocument(id: number) {
   const response = await adminApi.post<{ data: AdminLegalDocument; message: string }>(`/api/admin/legal-documents/versions/${id}/unpublish`);
   return response.data;
 }
+
+// Merchant registration dropdowns and locations — RegistrationOptionController, LocationController.
+type Saved<T> = { data: T; message: string };
+
+export const fetchRegistrationOptionGroups = () => getData<AdminRegistrationOptionGroup[]>("/api/admin/registration-options");
+
+export async function createRegistrationOption(type: RegistrationOptionType, name: string) {
+  const response = await adminApi.post<Saved<AdminRegistrationOption>>("/api/admin/registration-options", { type, name });
+  return response.data;
+}
+
+export async function updateRegistrationOption(id: number, payload: { name?: string; is_active?: boolean }) {
+  const response = await adminApi.patch<Saved<AdminRegistrationOption>>(`/api/admin/registration-options/${id}`, payload);
+  return response.data;
+}
+
+export async function reorderRegistrationOptions(type: RegistrationOptionType, ids: number[]) {
+  const response = await adminApi.put<{ data: AdminRegistrationOptionGroup[] }>("/api/admin/registration-options/order", { type, ids });
+  return response.data.data;
+}
+
+export const deleteRegistrationOption = (id: number) => adminApi.delete<{ message: string }>(`/api/admin/registration-options/${id}`);
+
+export const fetchAdminProvinces = (search?: string) => getData<AdminProvince[]>("/api/admin/provinces", { search });
+
+export async function createProvince(payload: { name: string; region?: string | null }) {
+  const response = await adminApi.post<Saved<AdminProvince>>("/api/admin/provinces", payload);
+  return response.data;
+}
+
+export async function updateProvince(id: number, payload: { name?: string; region?: string | null; is_active?: boolean }) {
+  const response = await adminApi.patch<Saved<AdminProvince>>(`/api/admin/provinces/${id}`, payload);
+  return response.data;
+}
+
+export const deleteProvince = (id: number) => adminApi.delete<{ message: string }>(`/api/admin/provinces/${id}`);
+
+export const fetchAdminCities = (provinceId: number) => getData<AdminCity[]>(`/api/admin/provinces/${provinceId}/cities`);
+
+export async function createCity(provinceId: number, payload: { name: string; kind?: AdminCity["kind"] }) {
+  const response = await adminApi.post<Saved<AdminCity>>(`/api/admin/provinces/${provinceId}/cities`, payload);
+  return response.data;
+}
+
+export async function updateCity(id: number, payload: { name?: string; kind?: AdminCity["kind"]; is_active?: boolean }) {
+  const response = await adminApi.patch<Saved<AdminCity>>(`/api/admin/cities/${id}`, payload);
+  return response.data;
+}
+
+export const deleteCity = (id: number) => adminApi.delete<{ message: string }>(`/api/admin/cities/${id}`);

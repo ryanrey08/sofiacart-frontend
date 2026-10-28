@@ -20,6 +20,7 @@ import { MERCHANT_LEGAL_QUERY_KEY, MerchantLegalConsent, useMerchantLegalDocumen
 import api from "@/lib/api/axios";
 import { getStoredAuth } from "@/lib/auth";
 import { rememberPendingVerificationEmail } from "@/lib/email-verification";
+import { useProvinceCities, useRegistrationOptions } from "@/lib/hooks/registration-options";
 import { buildMerchantRegistrationFormData } from "@/lib/merchant-registration";
 import { cn, slugify } from "@/lib/utils";
 import {
@@ -136,13 +137,6 @@ function getMerchantAuthSnapshot(): boolean | undefined {
   if (typeof window === "undefined") return undefined;
   return hasRegisteredMerchant();
 }
-
-const options = {
-  businessTypes: ["Sole Proprietorship", "Partnership", "Corporation", "Cooperative"],
-  categories: ["Beauty", "Fashion", "Home", "Food", "Electronics", "Lifestyle"],
-  provinces: ["Metro Manila", "Cebu", "Davao del Sur", "Laguna", "Pampanga"],
-  idTypes: ["Passport", "Driver's License", "UMID", "PhilSys ID", "Postal ID"],
-};
 
 const selectClass = "h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200";
 
@@ -279,6 +273,11 @@ export function MerchantRegistrationForm() {
   const bannerFile = useWatch({ control, name: "storeBanner" }) ?? null;
   const governmentIdFile = useWatch({ control, name: "governmentIdFile" }) ?? null;
   const businessPermit = useWatch({ control, name: "businessPermit" }) ?? null;
+  const province = useWatch({ control, name: "province" }) ?? "";
+  // Dropdown choices are managed by the Super Admin (Platform > Registration Options).
+  const registrationOptions = useRegistrationOptions();
+  const catalog = registrationOptions.data;
+  const provinceCities = useProvinceCities(catalog, province);
 
   useEffect(() => {
     if (!slugEdited) {
@@ -430,7 +429,13 @@ export function MerchantRegistrationForm() {
     </div>
   );
 
-  const renderSelect = (name: "businessType" | "businessCategory" | "province" | "storeCategory" | "governmentIdType", label: string, placeholder: string, values: string[]) => (
+  const renderSelect = (
+    name: "businessType" | "businessCategory" | "province" | "city" | "storeCategory" | "governmentIdType",
+    label: string,
+    placeholder: string,
+    values: readonly string[] | undefined,
+    onChange?: () => void,
+  ) => (
     <div>
       <Label htmlFor={name}>{label}</Label>
       <select
@@ -438,14 +443,21 @@ export function MerchantRegistrationForm() {
         aria-invalid={errors[name] ? true : undefined}
         aria-describedby={errors[name] ? errorId(name) : undefined}
         className={cn(selectClass, errors[name] ? "border-red-400" : "border-slate-200")}
-        {...register(name)}
+        disabled={!values}
+        {...register(name, onChange ? { onChange } : undefined)}
       >
-        <option value="">{placeholder}</option>
-        {values.map((option) => <option key={option} value={option}>{option}</option>)}
+        <option value="">{values ? placeholder : "Loading choices…"}</option>
+        {values?.map((option) => <option key={option} value={option}>{option}</option>)}
       </select>
-      <FieldError name={name} message={errors[name]?.message} />
+      <FieldError name={name} message={errors[name]?.message as string | undefined} />
     </div>
   );
+
+  // Provinces with listed cities offer a dropdown; others (or a failed lookup) take a typed city.
+  const renderCity = () =>
+    provinceCities.cities && !provinceCities.isError
+      ? renderSelect("city", "City / Municipality", "Select city or municipality", provinceCities.isLoading ? undefined : provinceCities.cities)
+      : renderInput("city", "City / Municipality", { placeholder: province ? "Type your city or municipality" : "Select a province first", disabled: !province });
 
   if (merchantAuth === undefined) {
     return (
@@ -563,6 +575,14 @@ export function MerchantRegistrationForm() {
             <div className="px-4 py-5 sm:px-6">
               <form className="space-y-5" onSubmit={handleSubmit(submitApplication)} aria-busy={isSubmitting} noValidate>
                 <fieldset disabled={isSubmitting} className="min-w-0 space-y-5 border-0 p-0">
+                {registrationOptions.isError ? (
+                  <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    We couldn&apos;t load the registration choices.{" "}
+                    <button type="button" className="font-semibold underline underline-offset-2" onClick={() => void registrationOptions.refetch()}>
+                      Try again
+                    </button>
+                  </div>
+                ) : null}
                 {currentStep === 1 ? (
                   <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
                     <SectionHeading title="Account details" description="These details will be used to create your SofiaCart sign-in." />
@@ -573,10 +593,10 @@ export function MerchantRegistrationForm() {
                     {renderInput("phone", "Account Phone", { type: "tel", autoComplete: "tel", placeholder: "+639XXXXXXXXX or 09XXXXXXXXX" })}
                     <SectionHeading title="Business details" />
                     {renderInput("businessName", "Business Name", { placeholder: "Registered business name" })}
-                    {renderSelect("businessType", "Business Type", "Select business type", options.businessTypes)}
+                    {renderSelect("businessType", "Business Type", "Select business type", catalog?.business_types)}
                     {renderInput("permitNumber", "DTI/SEC/Business Permit No.")}
                     {renderInput("tin", "TIN")}
-                    {renderSelect("businessCategory", "Business Category", "Select category", options.categories)}
+                    {renderSelect("businessCategory", "Business Category", "Select category", catalog?.categories)}
                     <FileUploadField
                       id="businessPermit"
                       label="Business Permit"
@@ -587,8 +607,10 @@ export function MerchantRegistrationForm() {
                       onFileChange={(file) => setValue("businessPermit", file, { shouldValidate: true })}
                     />
                     <div className="md:col-span-2">{renderInput("businessAddress", "Business Address", { placeholder: "Street, barangay", autoComplete: "street-address" })}</div>
-                    {renderInput("city", "City / Municipality")}
-                    {renderSelect("province", "Province", "Select province", options.provinces)}
+                    {renderSelect("province", "Province", "Select province", catalog?.provinces.map((item) => item.name), () =>
+                      setValue("city", "", { shouldValidate: false }),
+                    )}
+                    {renderCity()}
                     {renderInput("zipCode", "ZIP Code", { autoComplete: "postal-code" })}
                   </div>
                 ) : null}
@@ -616,7 +638,7 @@ export function MerchantRegistrationForm() {
                       </div>
                       <FieldError name="storeSlug" message={errors.storeSlug?.message} />
                     </div>
-                    {renderSelect("storeCategory", "Store Category", "Select store category", options.categories)}
+                    {renderSelect("storeCategory", "Store Category", "Select store category", catalog?.categories)}
                     {renderInput("storeEmail", "Email Address", { type: "email", autoComplete: "email" })}
                     <div className="md:col-span-2">
                       <Label htmlFor="storeDescription">Store Description</Label>
@@ -675,7 +697,7 @@ export function MerchantRegistrationForm() {
                     {renderInput("ownerContactNumber", "Contact Number", { type: "tel", autoComplete: "tel" })}
                     {renderInput("dateOfBirth", "Date of Birth", { type: "date", autoComplete: "bday" })}
                     <SectionHeading title="Identity verification" />
-                    {renderSelect("governmentIdType", "Government ID Type", "Select ID type", options.idTypes)}
+                    {renderSelect("governmentIdType", "Government ID Type", "Select ID type", catalog?.government_id_types)}
                     {renderInput("governmentIdNumber", "Government ID Number")}
                     {renderInput("governmentIdExpiry", "Date of Expiry", { type: "date" })}
                     <FileUploadField

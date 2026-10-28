@@ -11,6 +11,7 @@ import {
   CreditCard,
   FileText,
   LayoutDashboard,
+  ListChecks,
   Menu,
   Package,
   ScrollText,
@@ -42,6 +43,7 @@ const NAV_ICONS: Record<AdminNavIcon, LucideIcon> = {
   users: UserCog,
   logs: FileText,
   legal: ScrollText,
+  lists: ListChecks,
 };
 
 function initials(name: string) {

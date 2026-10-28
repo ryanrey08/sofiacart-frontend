@@ -337,3 +337,43 @@ export interface InventoryReport {
   net_quantity_change: number;
   by_reason: Array<{ reason: string; total_logs: number; net_quantity_change: string | number }>;
 }
+
+// GET /api/admin/registration-options (RegistrationOptionController): one group per dropdown.
+export type RegistrationOptionType = "business_type" | "category" | "government_id_type";
+
+export interface AdminRegistrationOption {
+  id: number;
+  type: RegistrationOptionType;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+  stores_using: number;
+}
+
+export interface AdminRegistrationOptionGroup {
+  type: RegistrationOptionType;
+  label: string;
+  options: AdminRegistrationOption[];
+}
+
+// GET /api/admin/provinces and /api/admin/provinces/{id}/cities (LocationController).
+export interface AdminProvince {
+  id: number;
+  name: string;
+  region: string | null;
+  psgc_code: string | null;
+  is_active: boolean;
+  cities_count: number;
+  active_cities_count: number;
+  stores_using: number;
+}
+
+export interface AdminCity {
+  id: number;
+  province_id: number;
+  name: string;
+  kind: "city" | "municipality" | null;
+  psgc_code: string | null;
+  is_active: boolean;
+  stores_using: number;
+}

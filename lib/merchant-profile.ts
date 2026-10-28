@@ -115,7 +115,7 @@ export const MERCHANT_FIELD_GROUPS: Array<{ title: string; description: string; 
   {
     title: "Business information",
     description: "Your registered business details and address.",
-    fields: ["business_name", "business_type", "business_category", "business_address", "city", "province", "zip_code"],
+    fields: ["business_name", "business_type", "business_category", "business_address", "province", "city", "zip_code"],
   },
   {
     title: "Contact information",
